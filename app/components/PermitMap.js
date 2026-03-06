@@ -273,11 +273,11 @@ export default function PermitMap() {
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
               <span style={{ color: '#fff', fontSize: 17, fontWeight: 700, letterSpacing: 0.5 }}>IST Permit Intel</span>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 }}>NE Oklahoma — November 2025</div>
+            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 }}>NE Oklahoma — Nov 2025 through Feb 2026</div>
           </div>
           <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, textAlign: 'right', fontFamily: 'monospace' }}>
-            <div>176 permits / 83 custom</div>
-            <div>NOW Report Data</div>
+            <div>164 custom permits</div>
+            <div>9 weeks of NOW data</div>
           </div>
         </div>
       </div>
