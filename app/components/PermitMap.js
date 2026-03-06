@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { PERMITS, CITIES, CITY_COORDS } from '../../lib/permits';
+import { geocodePermits, applyGeocodedCoords, clearGeocodeCache } from '../../lib/geocode';
 
 const STYLES = {
   satellite: 'mapbox://styles/mapbox/satellite-v9',
@@ -43,9 +44,11 @@ export default function PermitMap() {
   const [loaded, setLoaded] = useState(false);
   const [currentCity, setCurrentCity] = useState('All');
   const [customOnly, setCustomOnly] = useState(false);
-  const [mapStyle, setMapStyle] = useState('satellite');
+  const [mapStyle, setMapStyle] = useState('hybrid');
   const [selected, setSelected] = useState(null);
   const [panelOpen, setPanelOpen] = useState(true);
+  const [permits, setPermits] = useState(PERMITS);
+  const [geocodeProgress, setGeocodeProgress] = useState(null); // null = not started, {done, total} = in progress, 'complete' = done
 
   // Auto-collapse on mobile
   useEffect(() => {
@@ -59,12 +62,35 @@ export default function PermitMap() {
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
+  // Run geocoding on first load
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+
+    async function run() {
+      setGeocodeProgress({ done: 0, total: PERMITS.length });
+      const geocoded = await geocodePermits(PERMITS, token, (done, total) => {
+        if (!cancelled) setGeocodeProgress({ done, total });
+      });
+      if (!cancelled) {
+        const updated = applyGeocodedCoords(PERMITS, geocoded);
+        setPermits(updated);
+        setGeocodeProgress('complete');
+      }
+    }
+    run();
+    return () => { cancelled = true; };
+  }, [token]);
+
   // Get filtered permits
-  const filtered = PERMITS.filter(p => {
-    if (customOnly && p.production) return false;
-    if (currentCity !== 'All' && p.city !== currentCity) return false;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    return permits.filter(p => {
+      if (customOnly && p.production) return false;
+      if (currentCity !== 'All' && p.city !== currentCity) return false;
+      return true;
+    });
+  }, [permits, customOnly, currentCity]);
+
   const customCount = filtered.filter(p => !p.production).length;
   const totalValue = filtered.filter(p => !p.production).reduce((s, p) => s + p.value, 0);
 
@@ -81,7 +107,7 @@ export default function PermitMap() {
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
-      style: STYLES.satellite,
+      style: STYLES.hybrid,
       center: [-95.85, 36.10],
       zoom: 10.3,
       pitch: 45,
@@ -256,6 +282,28 @@ export default function PermitMap() {
         </div>
       </div>
 
+      {/* Geocoding Progress */}
+      {geocodeProgress && geocodeProgress !== 'complete' && (
+        <div style={{
+          position: 'absolute', top: 56, left: 0, right: 0, zIndex: 15,
+          padding: '6px 16px', background: 'rgba(10,10,10,0.9)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>
+            Geocoding addresses... {geocodeProgress.done}/{geocodeProgress.total}
+          </div>
+          <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
+            <div style={{
+              height: '100%', borderRadius: 2,
+              background: '#22c55e',
+              width: `${(geocodeProgress.done / geocodeProgress.total) * 100}%`,
+              transition: 'width 0.2s',
+            }} />
+          </div>
+        </div>
+      )}
+
       {/* Style toggle */}
       <div style={{ position: 'absolute', top: 64, right: 12, zIndex: 10, display: 'flex', gap: 4 }}>
         {Object.keys(STYLES).map(s => (
@@ -363,6 +411,17 @@ export default function PermitMap() {
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Production</span>
           </div>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 6 }}>Circle size = permit value</div>
+          <button
+            onClick={() => {
+              clearGeocodeCache();
+              window.location.reload();
+            }}
+            style={{
+              marginTop: 10, width: '100%', padding: '5px 0', borderRadius: 4,
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.35)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >Re-geocode addresses</button>
         </div>
       </div>
 
