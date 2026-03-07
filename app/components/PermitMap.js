@@ -144,24 +144,16 @@ export default function PermitMap() {
 
   const openAppleMapsRoute = useCallback(() => {
     if (routeList.length === 0) return;
-    if (routeList.length === 1) {
-      const p = routeList[0];
-      window.open(`maps://maps.apple.com/?daddr=${encodeURIComponent(p.address + ', ' + p.city + ', OK')}`, '_blank');
+    // Apple Maps multi-stop URL scheme using "to:" separator
+    // Format: maps://?saddr=&daddr=STOP1+to:STOP2+to:STOP3
+    const addresses = routeList.map(p => p.address + ', ' + p.city + ', OK');
+    if (addresses.length === 1) {
+      window.open(`maps://?daddr=${encodeURIComponent(addresses[0])}&dirflg=d`, '_blank');
       return;
     }
-    // Apple Maps multi-stop: open with first as origin, chain waypoints
-    // Apple Maps doesn't support full multi-stop natively in URL, so we use
-    // a workaround: Google Maps URL (works on iOS too and supports waypoints)
-    const stops = routeList.map(p => encodeURIComponent(p.address + ', ' + p.city + ', OK'));
-    const origin = stops[0];
-    const dest = stops[stops.length - 1];
-    const waypoints = stops.slice(1, -1).join('|');
-    const url = waypoints
-      ? `https://maps.apple.com/?saddr=${origin}&daddr=${dest}&dirflg=d`
-      : `https://maps.apple.com/?saddr=${origin}&daddr=${dest}&dirflg=d`;
-    // For true multi-stop, use Google Maps which iOS will offer to open in Maps
-    const gmUrl = `https://www.google.com/maps/dir/${stops.join('/')}`
-    window.open(gmUrl, '_blank');
+    const first = encodeURIComponent(addresses[0]);
+    const rest = addresses.slice(1).map(a => encodeURIComponent(a)).join('+to:');
+    window.open(`maps://?saddr=&daddr=${first}+to:${rest}&dirflg=d`, '_blank');
   }, [routeList]);
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -400,7 +392,7 @@ export default function PermitMap() {
             background: 'rgba(0,122,255,0.9)', border: 'none',
             color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
           }}>
-            🗺 Map Route in Google Maps
+            🗺 Map Route in Apple Maps
           </button>
         </div>
       )}
