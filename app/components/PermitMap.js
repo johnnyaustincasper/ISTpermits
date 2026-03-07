@@ -36,6 +36,22 @@ const STYLES = {
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const NOTES_KEY = 'ist-permit-notes';
 const ROUTE_KEY = 'ist-route-list';
+const STATUS_KEY = 'ist-permit-status';
+
+const STATUSES = [
+  { key: 'called',    label: 'Called',        color: '#f59e0b', dot: '#f59e0b' },
+  { key: 'quoted',    label: 'Quoted',        color: '#8b5cf6', dot: '#8b5cf6' },
+  { key: 'won',       label: 'Won ✓',         color: '#16a34a', dot: '#16a34a' },
+  { key: 'pass',      label: 'Not Interested', color: '#6b7280', dot: '#9ca3af' },
+];
+
+function loadStatuses() {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem(STATUS_KEY) || '{}'); } catch { return {}; }
+}
+function saveStatuses(s) {
+  if (typeof window !== 'undefined') localStorage.setItem(STATUS_KEY, JSON.stringify(s));
+}
 
 function loadNotes() {
   if (typeof window === 'undefined') return {};
@@ -52,20 +68,25 @@ function saveRoute(r) {
   if (typeof window !== 'undefined') localStorage.setItem(ROUTE_KEY, JSON.stringify(r));
 }
 
-function buildGeoJSON(permits) {
+const STATUS_COLORS = { called: '#f59e0b', quoted: '#8b5cf6', won: '#16a34a', pass: '#9ca3af' };
+
+function buildGeoJSON(permits, statuses = {}) {
   return {
     type: 'FeatureCollection',
-    features: permits.filter(p => p.lat !== 0 && p.lng !== 0).map(p => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-      properties: {
-        id: p.id, builder: p.builder, address: p.address, city: p.city,
-        sqft: p.sqft, value: p.value, week: p.week, production: p.production,
-        phone: p.phone, subdivision: p.subdivision, contact: p.contact,
-        // Bigger minimum radius for easier tapping
-        radius: Math.max(14, Math.sqrt((p.value || 50000) / 4000)),
-      },
-    })),
+    features: permits.filter(p => p.lat !== 0 && p.lng !== 0).map(p => {
+      const st = statuses[p.id];
+      return {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        properties: {
+          id: p.id, builder: p.builder, address: p.address, city: p.city,
+          sqft: p.sqft, value: p.value, week: p.week, production: p.production,
+          phone: p.phone, subdivision: p.subdivision, contact: p.contact,
+          radius: Math.max(14, Math.sqrt((p.value || 50000) / 4000)),
+          dotColor: st ? STATUS_COLORS[st] : (p.production ? '#ea580c' : '#2563eb'),
+        },
+      };
+    }),
   };
 }
 
@@ -86,7 +107,7 @@ function addLayers(map, data, onClickPermit) {
     source: 'permits',
     paint: {
       'circle-radius': ['get', 'radius'],
-      'circle-color': ['case', ['get', 'production'], '#ea580c', '#2563eb'],
+      'circle-color': ['get', 'dotColor'],
       'circle-opacity': 0.85,
       'circle-stroke-width': 2.5,
       'circle-stroke-color': '#ffffff',
@@ -154,6 +175,7 @@ export default function PermitMap() {
   const [notes, setNotes] = useState(() => loadNotes());
   const [noteText, setNoteText] = useState('');
   const [showRoutePanel, setShowRoutePanel] = useState(false);
+  const [statuses, setStatuses] = useState(() => loadStatuses());
 
   const isMobile = useRef(false);
   useEffect(() => {
@@ -185,6 +207,14 @@ export default function PermitMap() {
     setNotes(updated);
     saveNotes(updated);
   }, [notes]);
+
+  const setStatus = useCallback((id, statusKey) => {
+    setStatuses(prev => {
+      const updated = statusKey ? { ...prev, [id]: statusKey } : Object.fromEntries(Object.entries(prev).filter(([k]) => k !== id));
+      saveStatuses(updated);
+      return updated;
+    });
+  }, []);
 
   const addToRoute = useCallback((permit) => {
     setRouteList(prev => {
@@ -258,7 +288,7 @@ export default function PermitMap() {
     });
   }, [permits, customOnly, currentCity, currentMonth]);
 
-  const geoJSON = useMemo(() => buildGeoJSON(filtered), [filtered]);
+  const geoJSON = useMemo(() => buildGeoJSON(filtered, statuses), [filtered, statuses]);
 
   useEffect(() => {
     if (!token || mapRef.current) return;
@@ -276,7 +306,7 @@ export default function PermitMap() {
     map.on('load', () => {
       map.addSource('mapbox-dem', { type: 'raster-dem', url: 'mapbox://mapbox.mapbox-terrain-dem-v1', tileSize: 512, maxzoom: 14 });
       map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.3 });
-      addLayers(map, buildGeoJSON(PERMITS), selectPermit);
+      addLayers(map, buildGeoJSON(PERMITS, loadStatuses()), selectPermit);
       setLoaded(true);
       map.flyTo({ center: [-95.88, 36.08], zoom: 10.5, pitch: 45, bearing: -12, duration: 2000 });
     });
@@ -422,7 +452,13 @@ export default function PermitMap() {
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: T.orange, border: '2px solid #fff', boxShadow: '0 0 0 1px #ddd' }} />
             <span style={{ fontSize: 13, color: T.text }}>Production Builder</span>
           </div>
-          <div style={{ fontSize: 11, color: T.textMuted }}>Circle size = permit value</div>
+          <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6 }}>Circle size = permit value</div>
+          {STATUSES.map(s => (
+            <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: T.textSub }}>{s.label}</span>
+            </div>
+          ))}
           <button onClick={() => { clearGeocodeCache(); window.location.reload(); }} style={{
             marginTop: 10, width: '100%', padding: '7px 0', borderRadius: 6,
             background: T.bg, border: `1px solid ${T.cardBorder}`,
@@ -584,7 +620,27 @@ export default function PermitMap() {
             />
           </div>
 
-          {/* Badge */}
+          {/* Status tags */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Status</div>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+              {STATUSES.map(s => {
+                const active = statuses[selected.id] === s.key;
+                return (
+                  <button key={s.key} onClick={() => setStatus(selected.id, active ? null : s.key)} style={{
+                    padding: '8px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    background: active ? s.color : T.bg,
+                    border: active ? `1.5px solid ${s.color}` : `1px solid ${T.cardBorder}`,
+                    color: active ? '#fff' : T.textSub,
+                    transition: 'all 0.15s',
+                  }}>{s.label}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Builder type badge */}
           <div style={{
             display: 'inline-block', padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
             background: selected.production ? T.orangeLight : T.blueLight,
