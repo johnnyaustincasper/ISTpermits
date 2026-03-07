@@ -112,9 +112,10 @@ export default function PermitMap() {
       if (mapRef.current) {
         const coords = [Number(props.lng || 0), Number(props.lat || 0)];
         if (coords[0] && coords[1]) {
+          const cardHeight = Math.round(window.innerHeight * 0.55) + 40
           mapRef.current.easeTo({
             center: coords,
-            padding: { bottom: 280 },
+            padding: { bottom: cardHeight },
             duration: 400,
           });
         }
@@ -335,12 +336,16 @@ export default function PermitMap() {
 
       {selected && (
         <div style={{
-          position: 'absolute', bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
-          left: '50%', transform: 'translateX(-50%)', zIndex: 20,
-          width: 'calc(100% - 24px)', maxWidth: 560, background: 'rgba(10,10,10,0.94)',
-          border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '14px 16px',
-          backdropFilter: 'blur(16px)', boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
-          maxHeight: '40vh', overflowY: 'auto',
+          position: 'fixed', bottom: 0,
+          left: 0, right: 0, zIndex: 20,
+          background: 'rgba(10,10,10,0.97)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: '14px 14px 0 0',
+          padding: '14px 16px 24px',
+          paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 -4px 40px rgba(0,0,0,0.6)',
+          maxHeight: '55vh', overflowY: 'auto',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
             <div>
