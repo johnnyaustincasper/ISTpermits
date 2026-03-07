@@ -469,15 +469,22 @@ export default function PermitMap() {
 
       {/* Detail card */}
       {selected && (
-        <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
-          background: T.card, borderTop: `1px solid ${T.cardBorder}`,
-          borderRadius: '20px 20px 0 0',
-          padding: '18px 18px',
-          paddingBottom: 'max(28px, env(safe-area-inset-bottom, 28px))',
-          boxShadow: T.shadowLg,
-          maxHeight: '60vh', overflowY: 'auto',
-        }}>
+        <div
+          onTouchStart={e => { e.currentTarget._swipeY = e.touches[0].clientY; }}
+          onTouchEnd={e => {
+            const startY = e.currentTarget._swipeY || 0;
+            const dy = e.changedTouches[0].clientY - startY;
+            if (dy > 60) closeDetail();
+          }}
+          style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
+            background: T.card, borderTop: `1px solid ${T.cardBorder}`,
+            borderRadius: '20px 20px 0 0',
+            padding: '18px 18px',
+            paddingBottom: 'max(28px, env(safe-area-inset-bottom, 28px))',
+            boxShadow: T.shadowLg,
+            maxHeight: '60vh', overflowY: 'auto',
+          }}>
           {/* Drag handle */}
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 14px' }} />
 
