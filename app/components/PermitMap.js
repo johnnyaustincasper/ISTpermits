@@ -6,11 +6,51 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { PERMITS, CITIES, CITY_COORDS } from '../../lib/permits';
 import { geocodePermits, applyGeocodedCoords, clearGeocodeCache } from '../../lib/geocode';
 
+// ─── Theme ────────────────────────────────────────────────────────────────────
+const T = {
+  bg: '#f5f7fa',
+  card: 'rgba(255,255,255,0.97)',
+  cardBorder: 'rgba(0,0,0,0.08)',
+  text: '#1a1a2e',
+  textSub: '#6b7280',
+  textMuted: '#9ca3af',
+  blue: '#2563eb',
+  blueLight: '#eff6ff',
+  blueBorder: '#bfdbfe',
+  blueDark: '#1d4ed8',
+  green: '#16a34a',
+  greenLight: '#f0fdf4',
+  greenBorder: '#bbf7d0',
+  orange: '#ea580c',
+  orangeLight: '#fff7ed',
+  shadow: '0 2px 16px rgba(0,0,0,0.10)',
+  shadowLg: '0 -4px 32px rgba(0,0,0,0.12)',
+};
+
 const STYLES = {
   satellite: 'mapbox://styles/mapbox/satellite-v9',
   hybrid: 'mapbox://styles/mapbox/satellite-streets-v12',
-  dark: 'mapbox://styles/mapbox/dark-v11',
+  streets: 'mapbox://styles/mapbox/light-v11',
 };
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const NOTES_KEY = 'ist-permit-notes';
+const ROUTE_KEY = 'ist-route-list';
+
+function loadNotes() {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); } catch { return {}; }
+}
+function saveNotes(n) {
+  if (typeof window !== 'undefined') localStorage.setItem(NOTES_KEY, JSON.stringify(n));
+}
+function loadRoute() {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(ROUTE_KEY) || '[]'); } catch { return []; }
+}
+function saveRoute(r) {
+  if (typeof window !== 'undefined') localStorage.setItem(ROUTE_KEY, JSON.stringify(r));
+}
 
 function buildGeoJSON(permits) {
   return {
@@ -22,32 +62,47 @@ function buildGeoJSON(permits) {
         id: p.id, builder: p.builder, address: p.address, city: p.city,
         sqft: p.sqft, value: p.value, week: p.week, production: p.production,
         phone: p.phone, subdivision: p.subdivision, contact: p.contact,
-        radius: Math.max(5, Math.sqrt((p.value || 50000) / 6000)),
+        // Bigger minimum radius for easier tapping
+        radius: Math.max(14, Math.sqrt((p.value || 50000) / 4000)),
       },
     })),
   };
 }
 
-function fmt(v) { return '$' + v.toLocaleString(); }
+function fmt(v) { return '$' + Number(v).toLocaleString(); }
 
 function addLayers(map, data, onClickPermit) {
+  if (map.getLayer('permits-hit')) map.removeLayer('permits-hit');
   if (map.getLayer('permits-labels')) map.removeLayer('permits-labels');
   if (map.getLayer('permits-main')) map.removeLayer('permits-main');
   if (map.getSource('permits')) map.removeSource('permits');
 
   map.addSource('permits', { type: 'geojson', data });
 
+  // Visual circle
   map.addLayer({
     id: 'permits-main',
     type: 'circle',
     source: 'permits',
     paint: {
       'circle-radius': ['get', 'radius'],
-      'circle-color': ['case', ['get', 'production'], '#ff6b35', '#22c55e'],
+      'circle-color': ['case', ['get', 'production'], '#ea580c', '#2563eb'],
       'circle-opacity': 0.85,
-      'circle-stroke-width': 1.5,
+      'circle-stroke-width': 2.5,
       'circle-stroke-color': '#ffffff',
-      'circle-stroke-opacity': 0.5,
+      'circle-stroke-opacity': 0.9,
+    },
+  });
+
+  // Invisible oversized hit-target layer for easier tapping
+  map.addLayer({
+    id: 'permits-hit',
+    type: 'circle',
+    source: 'permits',
+    paint: {
+      'circle-radius': ['+', ['get', 'radius'], 14],
+      'circle-opacity': 0,
+      'circle-stroke-width': 0,
     },
   });
 
@@ -58,29 +113,29 @@ function addLayers(map, data, onClickPermit) {
     minzoom: 13,
     layout: {
       'text-field': ['get', 'builder'],
-      'text-size': 10,
-      'text-offset': [0, -1.6],
+      'text-size': 11,
+      'text-offset': [0, -1.8],
       'text-anchor': 'bottom',
       'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
       'text-max-width': 12,
     },
     paint: {
       'text-color': '#ffffff',
-      'text-halo-color': 'rgba(0,0,0,0.8)',
-      'text-halo-width': 1,
+      'text-halo-color': 'rgba(0,0,0,0.75)',
+      'text-halo-width': 1.5,
     },
   });
 
-  if (map._permitClick) map.off('click', 'permits-main', map._permitClick);
+  if (map._permitClick) map.off('click', 'permits-hit', map._permitClick);
   map._permitClick = (e) => {
     const f = e.features[0];
     const p = f.properties;
     const [lng, lat] = f.geometry.coordinates;
     onClickPermit({ ...p, lat, lng, production: p.production === true || p.production === 'true' });
   };
-  map.on('click', 'permits-main', map._permitClick);
-  map.on('mouseenter', 'permits-main', () => { map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', 'permits-main', () => { map.getCanvas().style.cursor = ''; });
+  map.on('click', 'permits-hit', map._permitClick);
+  map.on('mouseenter', 'permits-hit', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'permits-hit', () => { map.getCanvas().style.cursor = ''; });
 }
 
 export default function PermitMap() {
@@ -91,62 +146,70 @@ export default function PermitMap() {
   const [customOnly, setCustomOnly] = useState(false);
   const [mapStyle, setMapStyle] = useState('hybrid');
   const [selected, setSelected] = useState(null);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [permits, setPermits] = useState(PERMITS);
   const [geocoding, setGeocoding] = useState(false);
-  const [routeList, setRouteList] = useState([]);
+  const [routeList, setRouteList] = useState(() => loadRoute());
   const [currentMonth, setCurrentMonth] = useState('All');
+  const [notes, setNotes] = useState(() => loadNotes());
+  const [noteText, setNoteText] = useState('');
+  const [showRoutePanel, setShowRoutePanel] = useState(false);
 
   const isMobile = useRef(false);
-
   useEffect(() => {
     if (typeof window !== 'undefined') {
       isMobile.current = window.innerWidth < 768;
-      if (isMobile.current) setPanelOpen(false);
     }
   }, []);
 
   const selectPermit = useCallback((props) => {
     setSelected(props);
-    if (isMobile.current) {
-      setPanelOpen(false);
-      // Pan the map so the pin is in the upper third, leaving room for the detail card
-      if (mapRef.current) {
-        const coords = [Number(props.lng || 0), Number(props.lat || 0)];
-        if (coords[0] && coords[1]) {
-          const cardHeight = Math.round(window.innerHeight * 0.55) + 40
-          mapRef.current.easeTo({
-            center: coords,
-            padding: { bottom: cardHeight },
-            duration: 400,
-          });
-        }
+    setShowRoutePanel(false);
+    setNoteText('');
+    if (mapRef.current) {
+      const coords = [Number(props.lng || 0), Number(props.lat || 0)];
+      if (coords[0] && coords[1]) {
+        const cardHeight = isMobile.current ? Math.round(window.innerHeight * 0.55) + 40 : 300;
+        mapRef.current.easeTo({ center: coords, padding: { bottom: cardHeight }, duration: 400 });
       }
     }
   }, []);
 
   const closeDetail = useCallback(() => {
     setSelected(null);
-    if (isMobile.current && mapRef.current) {
-      mapRef.current.easeTo({ padding: { bottom: 0 }, duration: 300 });
-    }
+    if (mapRef.current) mapRef.current.easeTo({ padding: { bottom: 0 }, duration: 300 });
   }, []);
+
+  const saveNote = useCallback((id, text) => {
+    const updated = { ...notes, [id]: text };
+    setNotes(updated);
+    saveNotes(updated);
+  }, [notes]);
 
   const addToRoute = useCallback((permit) => {
     setRouteList(prev => {
-      if (prev.find(p => p.id === permit.id)) return prev; // already added
-      return [...prev, permit];
+      if (prev.find(p => p.id === permit.id)) return prev;
+      const next = [...prev, permit];
+      saveRoute(next);
+      return next;
     });
   }, []);
 
   const removeFromRoute = useCallback((id) => {
-    setRouteList(prev => prev.filter(p => p.id !== id));
+    setRouteList(prev => {
+      const next = prev.filter(p => p.id !== id);
+      saveRoute(next);
+      return next;
+    });
+  }, []);
+
+  const clearRoute = useCallback(() => {
+    setRouteList([]);
+    saveRoute([]);
   }, []);
 
   const openAppleMapsRoute = useCallback(() => {
     if (routeList.length === 0) return;
-    // Apple Maps multi-stop URL scheme using "to:" separator
-    // Format: maps://?saddr=&daddr=STOP1+to:STOP2+to:STOP3
     const addresses = routeList.map(p => p.address + ', ' + p.city + ', OK');
     if (addresses.length === 1) {
       window.open(`maps://?daddr=${encodeURIComponent(addresses[0])}&dirflg=d`, '_blank');
@@ -159,7 +222,6 @@ export default function PermitMap() {
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-  // Geocode once — only 2 state updates: start and finish
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
@@ -175,8 +237,6 @@ export default function PermitMap() {
     return () => { cancelled = true; };
   }, [token]);
 
-  // Extract available months from permit weeks e.g. "11/2-11/8" → "Nov"
-  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const availableMonths = useMemo(() => {
     const seen = new Set();
     permits.forEach(p => {
@@ -199,14 +259,6 @@ export default function PermitMap() {
   }, [permits, customOnly, currentCity, currentMonth]);
 
   const geoJSON = useMemo(() => buildGeoJSON(filtered), [filtered]);
-  const customCount = useMemo(() => filtered.filter(p => !p.production).length, [filtered]);
-  const totalValue = useMemo(() => filtered.filter(p => !p.production).reduce((s, p) => s + p.value, 0), [filtered]);
-  const cityBreakdown = useMemo(() => {
-    const bd = {};
-    filtered.forEach(p => { bd[p.city] = (bd[p.city] || 0) + 1; });
-    return Object.entries(bd).sort((a, b) => b[1] - a[1]);
-  }, [filtered]);
-  const maxCount = cityBreakdown[0]?.[1] || 1;
 
   useEffect(() => {
     if (!token || mapRef.current) return;
@@ -260,259 +312,277 @@ export default function PermitMap() {
     });
   }, [geoJSON, selectPermit]);
 
+  const isInRoute = selected ? !!routeList.find(p => p.id === selected.id) : false;
+
   if (!token) {
     return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a' }}>
-        <div style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, padding: 32, maxWidth: 500, width: '90%', textAlign: 'center' }}>
-          <h2 style={{ color: '#fff', marginBottom: 8 }}>Mapbox Token Required</h2>
-          <p style={{ color: '#888', fontSize: 14, lineHeight: 1.6 }}>
-            Add <code style={{ background: '#111', padding: '2px 6px', borderRadius: 4, color: '#4da6ff' }}>NEXT_PUBLIC_MAPBOX_TOKEN</code> to your Vercel environment variables.
-          </p>
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg }}>
+        <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 16, padding: 32, maxWidth: 500, width: '90%', textAlign: 'center', boxShadow: T.shadow }}>
+          <h2 style={{ color: T.text, marginBottom: 8 }}>Mapbox Token Required</h2>
+          <p style={{ color: T.textSub, fontSize: 15, lineHeight: 1.6 }}>Add <code style={{ background: T.blueLight, padding: '2px 8px', borderRadius: 4, color: T.blue }}>NEXT_PUBLIC_MAPBOX_TOKEN</code> to Vercel environment variables.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ width: '100%', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100vh', position: 'relative', overflow: 'hidden', background: T.bg }}>
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0 }} />
 
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, background: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 70%, transparent 100%)', padding: '12px 16px 28px', pointerEvents: 'none' }}>
+      {/* Header */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, background: 'linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.4) 70%, transparent 100%)', padding: '12px 16px 28px', pointerEvents: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
-              <span style={{ color: '#fff', fontSize: 17, fontWeight: 700, letterSpacing: 0.5 }}>IST Permit Intel</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 9, height: 9, borderRadius: '50%', background: T.blue }} />
+              <span style={{ color: T.text, fontSize: 18, fontWeight: 800, letterSpacing: 0.3 }}>IST Permit Intel</span>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 }}>NE Oklahoma — Nov 2025 through Feb 2026</div>
+            <div style={{ color: T.textSub, fontSize: 12, marginTop: 2 }}>NE Oklahoma — Nov 2025 through Feb 2026</div>
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, textAlign: 'right', fontFamily: 'monospace' }}>
-            <div>{filtered.length} permits shown</div>
+          <div style={{ color: T.textMuted, fontSize: 11, textAlign: 'right' }}>
+            <div style={{ fontWeight: 600 }}>{filtered.length} permits</div>
             <div>{geocoding ? 'Geocoding...' : 'NOW Report Data'}</div>
           </div>
         </div>
       </div>
 
-      <div style={{ position: 'absolute', top: 100, right: 12, zIndex: 10, display: 'flex', gap: 4 }}>
+      {/* Map style buttons */}
+      <div style={{ position: 'absolute', top: 108, right: 12, zIndex: 10, display: 'flex', gap: 5 }}>
         {Object.keys(STYLES).map(s => (
           <button key={s} onClick={() => changeStyle(s)} style={{
-            padding: '6px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
-            border: mapStyle === s ? '1px solid #22c55e' : '1px solid rgba(255,255,255,0.1)',
-            background: mapStyle === s ? 'rgba(34,197,94,0.15)' : 'rgba(15,15,15,0.85)',
-            color: mapStyle === s ? '#22c55e' : 'rgba(255,255,255,0.5)',
-            backdropFilter: 'blur(8px)', fontFamily: 'inherit', textTransform: 'capitalize',
+            padding: '8px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontWeight: 600,
+            border: mapStyle === s ? `1.5px solid ${T.blue}` : `1px solid ${T.cardBorder}`,
+            background: mapStyle === s ? T.blueLight : T.card,
+            color: mapStyle === s ? T.blue : T.textSub,
+            boxShadow: T.shadow, fontFamily: 'inherit', textTransform: 'capitalize',
           }}>{s}</button>
         ))}
       </div>
 
-      <button onClick={() => setPanelOpen(prev => !prev)} style={{
-        position: 'absolute', top: 104, left: panelOpen ? 248 : 12, zIndex: 20,
-        width: 36, height: 36, borderRadius: 8,
-        background: 'rgba(10,10,10,0.88)', border: '1px solid rgba(255,255,255,0.12)',
-        color: '#fff', cursor: 'pointer', backdropFilter: 'blur(12px)',
+      {/* Sidebar toggle */}
+      <button onClick={() => { setPanelOpen(prev => !prev); setShowRoutePanel(false); }} style={{
+        position: 'absolute', top: 112, left: panelOpen ? 256 : 12, zIndex: 20,
+        width: 42, height: 42, borderRadius: 10,
+        background: T.card, border: `1px solid ${T.cardBorder}`,
+        color: T.text, cursor: 'pointer', boxShadow: T.shadow,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 14, fontFamily: 'monospace', transition: 'left 0.3s ease',
+        fontSize: 18, transition: 'left 0.3s ease',
       }}>{panelOpen ? '◀' : '☰'}</button>
 
-      <div style={{ position: 'absolute', top: 100, left: panelOpen ? 12 : -250, zIndex: 10, width: 230, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 80px)', overflowY: 'auto', transition: 'left 0.3s ease' }}>
-        <div style={cardStyle}>
-          <div style={cardTitleStyle}>Filter</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+      {/* Route list toggle button */}
+      {routeList.length > 0 && !selected && (
+        <button onClick={() => { setShowRoutePanel(prev => !prev); setPanelOpen(false); }} style={{
+          position: 'absolute', top: 164, left: 12, zIndex: 20,
+          padding: '10px 16px', borderRadius: 10,
+          background: T.blue, border: 'none',
+          color: '#fff', cursor: 'pointer', boxShadow: T.shadow,
+          fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+        }}>🗺 Route ({routeList.length})</button>
+      )}
+
+      {/* Sidebar */}
+      <div style={{ position: 'absolute', top: 108, left: panelOpen ? 12 : -260, zIndex: 10, width: 238, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 130px)', overflowY: 'auto', transition: 'left 0.3s ease', paddingBottom: 16 }}>
+
+        {/* City filter */}
+        <div style={card}>
+          <div style={cardTitle}>City</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {CITIES.map(c => (
-              <button key={c} onClick={() => flyToCity(c)} style={{
-                padding: '4px 9px', borderRadius: 4, fontSize: 11, cursor: 'pointer',
-                border: currentCity === c ? '1px solid #22c55e' : '1px solid rgba(255,255,255,0.1)',
-                background: currentCity === c ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
-                color: currentCity === c ? '#22c55e' : 'rgba(255,255,255,0.5)',
-                fontFamily: 'inherit',
-              }}>{c}</button>
+              <button key={c} onClick={() => flyToCity(c)} style={filterBtn(currentCity === c)}>{c}</button>
             ))}
           </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 11, color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={customOnly} onChange={e => { setCustomOnly(e.target.checked); closeDetail(); }} style={{ accentColor: '#22c55e' }} />
-            Custom builders only
+        </div>
+
+        {/* Month filter */}
+        <div style={card}>
+          <div style={cardTitle}>Month</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {availableMonths.map(m => (
+              <button key={m} onClick={() => { setCurrentMonth(m); closeDetail(); }} style={filterBtn(currentMonth === m)}>{m}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Custom only toggle */}
+        <div style={card}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            <input type="checkbox" checked={customOnly} onChange={e => { setCustomOnly(e.target.checked); closeDetail(); }} style={{ accentColor: T.blue, width: 18, height: 18 }} />
+            <span style={{ fontSize: 14, color: T.text, fontWeight: 500 }}>Custom builders only</span>
           </label>
         </div>
 
-        <div style={cardStyle}>
-          <div style={cardTitleStyle}>Month</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {availableMonths.map(m => (
-              <button key={m} onClick={() => { setCurrentMonth(m); closeDetail(); }} style={{
-                padding: '4px 9px', borderRadius: 4, fontSize: 11, cursor: 'pointer',
-                border: currentMonth === m ? '1px solid #22c55e' : '1px solid rgba(255,255,255,0.1)',
-                background: currentMonth === m ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
-                color: currentMonth === m ? '#22c55e' : 'rgba(255,255,255,0.5)',
-                fontFamily: 'inherit',
-              }}>{m}</button>
-            ))}
+        {/* Legend */}
+        <div style={card}>
+          <div style={cardTitle}>Legend</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: T.blue, border: '2px solid #fff', boxShadow: '0 0 0 1px #ddd' }} />
+            <span style={{ fontSize: 13, color: T.text }}>Custom / Indie Builder</span>
           </div>
-        </div>
-
-        <div style={cardStyle}>
-          <div style={cardTitleStyle}>Summary</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div><div style={statLabelStyle}>Showing</div><div style={statValStyle}>{filtered.length}</div></div>
-            <div><div style={statLabelStyle}>Custom</div><div style={{ ...statValStyle, color: '#22c55e' }}>{customCount}</div></div>
-            <div><div style={statLabelStyle}>Indie Value</div><div style={statValStyle}>${(totalValue / 1000000).toFixed(1)}M</div></div>
-            <div><div style={statLabelStyle}>Top Zone</div><div style={statValStyle}>{cityBreakdown[0]?.[0] || '—'}</div></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: T.orange, border: '2px solid #fff', boxShadow: '0 0 0 1px #ddd' }} />
+            <span style={{ fontSize: 13, color: T.text }}>Production Builder</span>
           </div>
-        </div>
-
-        <div style={cardStyle}>
-          <div style={cardTitleStyle}>By City</div>
-          {cityBreakdown.slice(0, 8).map(([city, count]) => (
-            <div key={city} style={{ marginBottom: 5 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>
-                <span>{city}</span><span style={{ color: '#22c55e', fontWeight: 600 }}>{count}</span>
-              </div>
-              <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
-                <div style={{ height: '100%', borderRadius: 2, background: 'linear-gradient(90deg, #22c55e, #16a34a)', width: `${(count / maxCount) * 100}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={cardStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Custom / Indie</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff6b35', boxShadow: '0 0 6px #ff6b35' }} />
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Production</span>
-          </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 6 }}>Circle size = permit value</div>
+          <div style={{ fontSize: 11, color: T.textMuted }}>Circle size = permit value</div>
           <button onClick={() => { clearGeocodeCache(); window.location.reload(); }} style={{
-            marginTop: 10, width: '100%', padding: '5px 0', borderRadius: 4,
-            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-            color: 'rgba(255,255,255,0.35)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit',
-          }}>Re-geocode addresses</button>
+            marginTop: 10, width: '100%', padding: '7px 0', borderRadius: 6,
+            background: T.bg, border: `1px solid ${T.cardBorder}`,
+            color: T.textMuted, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+          }}>↺ Re-geocode addresses</button>
         </div>
       </div>
 
-      {routeList.length > 0 && !selected && (
+      {/* Route panel */}
+      {showRoutePanel && !selected && (
         <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
-          background: 'rgba(10,10,10,0.97)', borderTop: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: '14px 14px 0 0', padding: '14px 16px',
-          paddingBottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
-          backdropFilter: 'blur(16px)', boxShadow: '0 -4px 30px rgba(0,0,0,0.5)',
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 25,
+          background: T.card, borderTop: `1px solid ${T.cardBorder}`,
+          borderRadius: '20px 20px 0 0', padding: '18px 18px',
+          paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
+          boxShadow: T.shadowLg, maxHeight: '65vh', overflowY: 'auto',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>🗺 Route — {routeList.length} stop{routeList.length > 1 ? 's' : ''}</span>
-            <button onClick={() => setRouteList([])} style={{
-              background: 'none', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)',
-              cursor: 'pointer', borderRadius: 4, padding: '3px 10px', fontSize: 11, fontFamily: 'inherit',
-            }}>Clear</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <span style={{ color: T.text, fontWeight: 800, fontSize: 17 }}>🗺 Route — {routeList.length} stop{routeList.length !== 1 ? 's' : ''}</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={clearRoute} style={{ ...ghostBtn, color: T.orange }}>Clear all</button>
+              <button onClick={() => setShowRoutePanel(false)} style={ghostBtn}>✕</button>
+            </div>
           </div>
-          <div style={{ maxHeight: 120, overflowY: 'auto', marginBottom: 10 }}>
-            {routeList.map((p, i) => (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ color: '#22c55e', fontFamily: 'monospace', fontSize: 11, minWidth: 18 }}>{i + 1}.</span>
-                <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.7)', truncate: 'true' }}>{p.builder} — {p.address}</span>
-                <button onClick={() => removeFromRoute(p.id)} style={{
-                  background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)',
-                  cursor: 'pointer', fontSize: 14, padding: '0 4px',
-                }}>✕</button>
+          {routeList.map((p, i) => (
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, padding: '10px 12px', background: T.bg, borderRadius: 10 }}>
+              <span style={{ color: T.blue, fontWeight: 800, fontSize: 15, minWidth: 22 }}>{i + 1}.</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{p.builder}</div>
+                <div style={{ fontSize: 12, color: T.textSub }}>{p.address}, {p.city}</div>
               </div>
-            ))}
-          </div>
+              <button onClick={() => removeFromRoute(p.id)} style={{ background: 'none', border: 'none', color: T.textMuted, cursor: 'pointer', fontSize: 18, padding: '0 4px' }}>✕</button>
+            </div>
+          ))}
           <button onClick={openAppleMapsRoute} style={{
-            width: '100%', padding: '12px 0', borderRadius: 10, cursor: 'pointer',
-            background: 'rgba(0,122,255,0.9)', border: 'none',
-            color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+            width: '100%', padding: '15px 0', borderRadius: 12, cursor: 'pointer',
+            background: T.blue, border: 'none', color: '#fff',
+            fontSize: 16, fontWeight: 800, fontFamily: 'inherit', marginTop: 6,
           }}>
-            🗺 Map Route in Apple Maps
+            🗺 Open Route in Apple Maps
           </button>
         </div>
       )}
 
+      {/* Detail card */}
       {selected && (
         <div style={{
-          position: 'fixed', bottom: 0,
-          left: 0, right: 0, zIndex: 20,
-          background: 'rgba(10,10,10,0.97)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: '14px 14px 0 0',
-          padding: '14px 16px 24px',
-          paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
-          backdropFilter: 'blur(16px)',
-          boxShadow: '0 -4px 40px rgba(0,0,0,0.6)',
-          maxHeight: '55vh', overflowY: 'auto',
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
+          background: T.card, borderTop: `1px solid ${T.cardBorder}`,
+          borderRadius: '20px 20px 0 0',
+          padding: '18px 18px',
+          paddingBottom: 'max(28px, env(safe-area-inset-bottom, 28px))',
+          boxShadow: T.shadowLg,
+          maxHeight: '60vh', overflowY: 'auto',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{selected.builder}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
-                {selected.address} — {selected.city}{selected.subdivision ? ` — ${selected.subdivision}` : ''}
+          {/* Drag handle */}
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 14px' }} />
+
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: T.text, lineHeight: 1.2 }}>{selected.builder}</div>
+              <div style={{ fontSize: 14, color: T.textSub, marginTop: 4 }}>
+                {selected.address} · {selected.city}{selected.subdivision ? ` · ${selected.subdivision}` : ''}
               </div>
             </div>
-            <button onClick={closeDetail} style={{
-              background: 'none', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)',
-              cursor: 'pointer', borderRadius: 4, padding: '3px 10px', fontSize: 11, fontFamily: 'inherit',
-            }}>✕</button>
+            <button onClick={closeDetail} style={{ ...ghostBtn, marginLeft: 12, flexShrink: 0 }}>✕</button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10 }}>
+
+          {/* Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
             {[
-              { l: 'Value', v: selected.value > 0 ? fmt(Number(selected.value)) : 'N/A' },
-              { l: 'Sqft', v: Number(selected.sqft) > 0 ? Number(selected.sqft).toLocaleString() : 'N/A' },
-              { l: 'Week', v: selected.week },
-              { l: 'Phone', v: selected.phone || 'N/A' },
+              { l: 'Value', v: Number(selected.value) > 0 ? fmt(Number(selected.value)) : 'N/A' },
+              { l: 'Sq Ft', v: Number(selected.sqft) > 0 ? Number(selected.sqft).toLocaleString() : 'N/A' },
+              { l: 'Week', v: selected.week || 'N/A' },
             ].map(f => (
-              <div key={f.l}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: 'monospace' }}>{f.l}</div>
-                <div style={{ fontSize: 13, color: '#fff', fontWeight: 600, marginTop: 1 }}>{f.v}</div>
+              <div key={f.l} style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>{f.l}</div>
+                <div style={{ fontSize: 15, color: T.text, fontWeight: 700 }}>{f.v}</div>
               </div>
             ))}
           </div>
-          {selected.contact && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>Contact: {selected.contact}</div>}
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <a
-              href={`maps://maps.apple.com/?q=${encodeURIComponent(selected.address + ', ' + selected.city + ', OK')}&ll=${selected.lat},${selected.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
+
+          {/* Contact */}
+          {selected.contact && (
+            <div style={{ fontSize: 14, color: T.textSub, marginBottom: 10 }}>
+              Contact: <span style={{ color: T.text, fontWeight: 600 }}>{selected.contact}</span>
+            </div>
+          )}
+
+          {/* Phone — tap to call */}
+          {selected.phone && selected.phone !== 'N/A' && (
+            <a href={`tel:${selected.phone.replace(/\D/g,'')}`} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              width: '100%', padding: '14px 0', borderRadius: 12, marginBottom: 10,
+              background: T.greenLight, border: `1.5px solid ${T.greenBorder}`,
+              color: T.green, fontSize: 17, fontWeight: 800, textDecoration: 'none',
+            }}>
+              📞 Call {selected.phone}
+            </a>
+          )}
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <a href={`maps://maps.apple.com/?q=${encodeURIComponent(selected.address + ', ' + selected.city + ', OK')}&ll=${selected.lat},${selected.lng}`}
+              target="_blank" rel="noopener noreferrer" style={{
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                padding: '10px 0', borderRadius: 8,
-                background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)',
-                color: '#4da6ff', fontSize: 13, fontWeight: 600, textDecoration: 'none',
-              }}
-            >
+                padding: '13px 0', borderRadius: 12,
+                background: T.blueLight, border: `1.5px solid ${T.blueBorder}`,
+                color: T.blue, fontSize: 15, fontWeight: 700, textDecoration: 'none',
+              }}>
               📍 Maps
             </a>
-            <button
-              onClick={() => addToRoute(selected)}
-              style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                padding: '10px 0', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
-                background: routeList.find(p => p.id === selected.id) ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)',
-                border: routeList.find(p => p.id === selected.id) ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                color: routeList.find(p => p.id === selected.id) ? '#22c55e' : 'rgba(255,255,255,0.6)',
-                fontSize: 13, fontWeight: 600,
-              }}
-            >
-              {routeList.find(p => p.id === selected.id) ? '✓ Added' : '＋ Route'}
+            <button onClick={() => addToRoute(selected)} style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '13px 0', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
+              background: isInRoute ? T.blueLight : T.bg,
+              border: isInRoute ? `1.5px solid ${T.blueBorder}` : `1px solid ${T.cardBorder}`,
+              color: isInRoute ? T.blue : T.textSub,
+              fontSize: 15, fontWeight: 700,
+            }}>
+              {isInRoute ? '✓ Added' : '＋ Route'}
             </button>
           </div>
+
+          {/* Map Route button — visible when stops are queued */}
           {routeList.length > 0 && (
-            <button
-              onClick={() => { closeDetail(); openAppleMapsRoute(); }}
-              style={{
-                width: '100%', marginTop: 8, padding: '11px 0', borderRadius: 8,
-                cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 13,
-                background: 'rgba(0,122,255,0.9)', border: 'none', color: '#fff',
-              }}
-            >
-              🗺 Map Route ({routeList.length} stop{routeList.length > 1 ? 's' : ''})
+            <button onClick={() => { closeDetail(); openAppleMapsRoute(); }} style={{
+              width: '100%', padding: '14px 0', borderRadius: 12, cursor: 'pointer',
+              background: T.blue, border: 'none', color: '#fff',
+              fontSize: 16, fontWeight: 800, fontFamily: 'inherit', marginBottom: 10,
+            }}>
+              🗺 Map Route ({routeList.length} stop{routeList.length !== 1 ? 's' : ''})
             </button>
           )}
+
+          {/* Notes */}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Notes</div>
+            <textarea
+              value={noteText || notes[selected.id] || ''}
+              onChange={e => setNoteText(e.target.value)}
+              onBlur={e => saveNote(selected.id, e.target.value)}
+              placeholder="Add a note (saved automatically)…"
+              rows={3}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 10,
+                border: `1px solid ${T.cardBorder}`, background: T.bg,
+                color: T.text, fontSize: 14, fontFamily: 'inherit', resize: 'none',
+                outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* Badge */}
           <div style={{
-            marginTop: 10, padding: '5px 12px', borderRadius: 5, fontSize: 11, fontWeight: 600,
-            background: selected.production ? 'rgba(255,107,53,0.1)' : 'rgba(34,197,94,0.1)',
-            color: selected.production ? '#ff6b35' : '#22c55e',
-            border: `1px solid ${selected.production ? 'rgba(255,107,53,0.2)' : 'rgba(34,197,94,0.2)'}`,
-            display: 'inline-block',
+            display: 'inline-block', padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+            background: selected.production ? T.orangeLight : T.blueLight,
+            color: selected.production ? T.orange : T.blue,
+            border: `1px solid ${selected.production ? '#fed7aa' : T.blueBorder}`,
           }}>
             {selected.production ? 'Production Builder' : (Number(selected.value) >= 500000 ? '★ Premium Custom Lead' : '★ Indie Builder Lead')}
           </div>
@@ -522,13 +592,23 @@ export default function PermitMap() {
   );
 }
 
-const cardStyle = {
-  background: 'rgba(10,10,10,0.88)', border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 8, padding: 12, backdropFilter: 'blur(12px)',
+// ─── Style helpers ─────────────────────────────────────────────────────────────
+const card = {
+  background: 'rgba(255,255,255,0.95)', border: '1px solid rgba(0,0,0,0.07)',
+  borderRadius: 12, padding: 14, boxShadow: '0 2px 10px rgba(0,0,0,0.07)',
 };
-const cardTitleStyle = {
-  fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.35)',
-  letterSpacing: 1.5, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase',
+const cardTitle = {
+  fontSize: 11, color: '#6b7280', letterSpacing: 1, fontWeight: 700,
+  marginBottom: 10, textTransform: 'uppercase',
 };
-const statLabelStyle = { fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' };
-const statValStyle = { fontSize: 18, fontWeight: 700, color: '#fff', marginTop: 1 };
+const filterBtn = (active) => ({
+  padding: '6px 12px', borderRadius: 7, fontSize: 13, cursor: 'pointer', fontWeight: active ? 700 : 500,
+  border: active ? '1.5px solid #2563eb' : '1px solid rgba(0,0,0,0.1)',
+  background: active ? '#eff6ff' : '#f9fafb',
+  color: active ? '#2563eb' : '#374151',
+  fontFamily: 'inherit',
+});
+const ghostBtn = {
+  background: 'none', border: '1px solid rgba(0,0,0,0.1)', color: '#6b7280',
+  cursor: 'pointer', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontFamily: 'inherit',
+};
