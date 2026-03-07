@@ -95,6 +95,7 @@ export default function PermitMap() {
   const [permits, setPermits] = useState(PERMITS);
   const [geocoding, setGeocoding] = useState(false);
   const [routeList, setRouteList] = useState([]);
+  const [currentMonth, setCurrentMonth] = useState('All');
 
   const isMobile = useRef(false);
 
@@ -174,13 +175,28 @@ export default function PermitMap() {
     return () => { cancelled = true; };
   }, [token]);
 
+  // Extract available months from permit weeks e.g. "11/2-11/8" → "Nov"
+  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const availableMonths = useMemo(() => {
+    const seen = new Set();
+    permits.forEach(p => {
+      const m = parseInt((p.week || '').split('/')[0]);
+      if (m >= 1 && m <= 12) seen.add(m);
+    });
+    return ['All', ...Array.from(seen).sort((a,b) => a-b).map(m => MONTH_NAMES[m-1])];
+  }, [permits]);
+
   const filtered = useMemo(() => {
     return permits.filter(p => {
       if (customOnly && p.production) return false;
       if (currentCity !== 'All' && p.city !== currentCity) return false;
+      if (currentMonth !== 'All') {
+        const m = parseInt((p.week || '').split('/')[0]);
+        if (MONTH_NAMES[m-1] !== currentMonth) return false;
+      }
       return true;
     });
-  }, [permits, customOnly, currentCity]);
+  }, [permits, customOnly, currentCity, currentMonth]);
 
   const geoJSON = useMemo(() => buildGeoJSON(filtered), [filtered]);
   const customCount = useMemo(() => filtered.filter(p => !p.production).length, [filtered]);
@@ -316,6 +332,21 @@ export default function PermitMap() {
             <input type="checkbox" checked={customOnly} onChange={e => { setCustomOnly(e.target.checked); closeDetail(); }} style={{ accentColor: '#22c55e' }} />
             Custom builders only
           </label>
+        </div>
+
+        <div style={cardStyle}>
+          <div style={cardTitleStyle}>Month</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {availableMonths.map(m => (
+              <button key={m} onClick={() => { setCurrentMonth(m); closeDetail(); }} style={{
+                padding: '4px 9px', borderRadius: 4, fontSize: 11, cursor: 'pointer',
+                border: currentMonth === m ? '1px solid #22c55e' : '1px solid rgba(255,255,255,0.1)',
+                background: currentMonth === m ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
+                color: currentMonth === m ? '#22c55e' : 'rgba(255,255,255,0.5)',
+                fontFamily: 'inherit',
+              }}>{m}</button>
+            ))}
+          </div>
         </div>
 
         <div style={cardStyle}>
@@ -464,6 +495,18 @@ export default function PermitMap() {
               {routeList.find(p => p.id === selected.id) ? '✓ Added' : '＋ Route'}
             </button>
           </div>
+          {routeList.length > 0 && (
+            <button
+              onClick={() => { closeDetail(); openAppleMapsRoute(); }}
+              style={{
+                width: '100%', marginTop: 8, padding: '11px 0', borderRadius: 8,
+                cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 13,
+                background: 'rgba(0,122,255,0.9)', border: 'none', color: '#fff',
+              }}
+            >
+              🗺 Map Route ({routeList.length} stop{routeList.length > 1 ? 's' : ''})
+            </button>
+          )}
           <div style={{
             marginTop: 10, padding: '5px 12px', borderRadius: 5, fontSize: 11, fontWeight: 600,
             background: selected.production ? 'rgba(255,107,53,0.1)' : 'rgba(34,197,94,0.1)',
