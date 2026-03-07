@@ -486,11 +486,15 @@ export default function PermitMap() {
           {routeList.map((p, i) => (
             <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, padding: '10px 12px', background: T.bg, borderRadius: 10 }}>
               <span style={{ color: T.blue, fontWeight: 800, fontSize: 15, minWidth: 22 }}>{i + 1}.</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{p.builder}</div>
-                <div style={{ fontSize: 12, color: T.textSub }}>{p.address}, {p.city}</div>
+              <div
+                onClick={() => { selectPermit(p); setShowRoutePanel(false); }}
+                style={{ flex: 1, cursor: 'pointer' }}
+              >
+                <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{p.builder}</div>
+                <div style={{ fontSize: 13, color: T.textSub }}>{p.address}, {p.city}</div>
+                {p.phone && <div style={{ fontSize: 13, color: T.blue, marginTop: 2 }}>📞 {p.phone}</div>}
               </div>
-              <button onClick={() => removeFromRoute(p.id)} style={{ background: 'none', border: 'none', color: T.textMuted, cursor: 'pointer', fontSize: 18, padding: '0 4px' }}>✕</button>
+              <button onClick={() => removeFromRoute(p.id)} style={{ background: 'none', border: 'none', color: T.textMuted, cursor: 'pointer', fontSize: 18, padding: '4px 6px' }}>✕</button>
             </div>
           ))}
           <button onClick={openAppleMapsRoute} style={{
