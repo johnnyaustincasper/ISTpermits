@@ -360,7 +360,7 @@ export default function PermitMap() {
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0 }} />
 
       {/* Header */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, background: 'linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.4) 70%, transparent 100%)', padding: '12px 16px 28px', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, background: 'linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.5) 75%, transparent 100%)', padding: '14px 16px 32px', pointerEvents: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -377,7 +377,7 @@ export default function PermitMap() {
       </div>
 
       {/* Map style buttons */}
-      <div style={{ position: 'absolute', top: 108, right: 12, zIndex: 10, display: 'flex', gap: 5 }}>
+      <div style={{ position: 'absolute', top: 'calc(76px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 10, display: 'flex', gap: 5 }}>
         {Object.keys(STYLES).map(s => (
           <button key={s} onClick={() => changeStyle(s)} style={{
             padding: '8px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontWeight: 600,
@@ -391,7 +391,7 @@ export default function PermitMap() {
 
       {/* Sidebar toggle */}
       <button onClick={() => { setPanelOpen(prev => !prev); setShowRoutePanel(false); }} style={{
-        position: 'absolute', top: 112, left: panelOpen ? 256 : 12, zIndex: 20,
+        position: 'absolute', top: 'calc(80px + env(safe-area-inset-top, 0px))', left: panelOpen ? 256 : 12, zIndex: 20,
         width: 42, height: 42, borderRadius: 10,
         background: T.card, border: `1px solid ${T.cardBorder}`,
         color: T.text, cursor: 'pointer', boxShadow: T.shadow,
@@ -402,7 +402,7 @@ export default function PermitMap() {
       {/* Route list toggle button */}
       {routeList.length > 0 && !selected && (
         <button onClick={() => { setShowRoutePanel(prev => !prev); setPanelOpen(false); }} style={{
-          position: 'absolute', top: 164, left: 12, zIndex: 20,
+          position: 'absolute', top: 'calc(132px + env(safe-area-inset-top, 0px))', left: 12, zIndex: 20,
           padding: '10px 16px', borderRadius: 10,
           background: T.blue, border: 'none',
           color: '#fff', cursor: 'pointer', boxShadow: T.shadow,
@@ -411,7 +411,7 @@ export default function PermitMap() {
       )}
 
       {/* Sidebar */}
-      <div style={{ position: 'absolute', top: 108, left: panelOpen ? 12 : -260, zIndex: 10, width: 238, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 130px)', overflowY: 'auto', transition: 'left 0.3s ease', paddingBottom: 16 }}>
+      <div style={{ position: 'absolute', top: 'calc(76px + env(safe-area-inset-top, 0px))', left: panelOpen ? 12 : -260, zIndex: 10, width: 238, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 120px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))', overflowY: 'auto', transition: 'left 0.3s ease', paddingBottom: 16 }}>
 
         {/* City filter */}
         <div style={card}>
