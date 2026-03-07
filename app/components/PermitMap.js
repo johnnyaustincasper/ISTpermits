@@ -94,6 +94,7 @@ export default function PermitMap() {
   const [panelOpen, setPanelOpen] = useState(true);
   const [permits, setPermits] = useState(PERMITS);
   const [geocoding, setGeocoding] = useState(false);
+  const [routeList, setRouteList] = useState([]);
 
   const isMobile = useRef(false);
 
@@ -129,6 +130,39 @@ export default function PermitMap() {
       mapRef.current.easeTo({ padding: { bottom: 0 }, duration: 300 });
     }
   }, []);
+
+  const addToRoute = useCallback((permit) => {
+    setRouteList(prev => {
+      if (prev.find(p => p.id === permit.id)) return prev; // already added
+      return [...prev, permit];
+    });
+  }, []);
+
+  const removeFromRoute = useCallback((id) => {
+    setRouteList(prev => prev.filter(p => p.id !== id));
+  }, []);
+
+  const openAppleMapsRoute = useCallback(() => {
+    if (routeList.length === 0) return;
+    if (routeList.length === 1) {
+      const p = routeList[0];
+      window.open(`maps://maps.apple.com/?daddr=${encodeURIComponent(p.address + ', ' + p.city + ', OK')}`, '_blank');
+      return;
+    }
+    // Apple Maps multi-stop: open with first as origin, chain waypoints
+    // Apple Maps doesn't support full multi-stop natively in URL, so we use
+    // a workaround: Google Maps URL (works on iOS too and supports waypoints)
+    const stops = routeList.map(p => encodeURIComponent(p.address + ', ' + p.city + ', OK'));
+    const origin = stops[0];
+    const dest = stops[stops.length - 1];
+    const waypoints = stops.slice(1, -1).join('|');
+    const url = waypoints
+      ? `https://maps.apple.com/?saddr=${origin}&daddr=${dest}&dirflg=d`
+      : `https://maps.apple.com/?saddr=${origin}&daddr=${dest}&dirflg=d`;
+    // For true multi-stop, use Google Maps which iOS will offer to open in Maps
+    const gmUrl = `https://www.google.com/maps/dir/${stops.join('/')}`
+    window.open(gmUrl, '_blank');
+  }, [routeList]);
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -334,6 +368,43 @@ export default function PermitMap() {
         </div>
       </div>
 
+      {routeList.length > 0 && !selected && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
+          background: 'rgba(10,10,10,0.97)', borderTop: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: '14px 14px 0 0', padding: '14px 16px',
+          paddingBottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
+          backdropFilter: 'blur(16px)', boxShadow: '0 -4px 30px rgba(0,0,0,0.5)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>🗺 Route — {routeList.length} stop{routeList.length > 1 ? 's' : ''}</span>
+            <button onClick={() => setRouteList([])} style={{
+              background: 'none', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)',
+              cursor: 'pointer', borderRadius: 4, padding: '3px 10px', fontSize: 11, fontFamily: 'inherit',
+            }}>Clear</button>
+          </div>
+          <div style={{ maxHeight: 120, overflowY: 'auto', marginBottom: 10 }}>
+            {routeList.map((p, i) => (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ color: '#22c55e', fontFamily: 'monospace', fontSize: 11, minWidth: 18 }}>{i + 1}.</span>
+                <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.7)', truncate: 'true' }}>{p.builder} — {p.address}</span>
+                <button onClick={() => removeFromRoute(p.id)} style={{
+                  background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)',
+                  cursor: 'pointer', fontSize: 14, padding: '0 4px',
+                }}>✕</button>
+              </div>
+            ))}
+          </div>
+          <button onClick={openAppleMapsRoute} style={{
+            width: '100%', padding: '12px 0', borderRadius: 10, cursor: 'pointer',
+            background: 'rgba(0,122,255,0.9)', border: 'none',
+            color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+          }}>
+            🗺 Map Route in Google Maps
+          </button>
+        </div>
+      )}
+
       {selected && (
         <div style={{
           position: 'fixed', bottom: 0,
@@ -373,19 +444,34 @@ export default function PermitMap() {
             ))}
           </div>
           {selected.contact && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>Contact: {selected.contact}</div>}
-          <a
-            href={`maps://maps.apple.com/?q=${encodeURIComponent(selected.address + ', ' + selected.city + ', OK')}&ll=${selected.lat},${selected.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              marginTop: 12, width: '100%', padding: '10px 0', borderRadius: 8,
-              background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)',
-              color: '#4da6ff', fontSize: 13, fontWeight: 600, textDecoration: 'none',
-            }}
-          >
-            📍 Open in Apple Maps
-          </a>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <a
+              href={`maps://maps.apple.com/?q=${encodeURIComponent(selected.address + ', ' + selected.city + ', OK')}&ll=${selected.lat},${selected.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '10px 0', borderRadius: 8,
+                background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)',
+                color: '#4da6ff', fontSize: 13, fontWeight: 600, textDecoration: 'none',
+              }}
+            >
+              📍 Maps
+            </a>
+            <button
+              onClick={() => addToRoute(selected)}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '10px 0', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                background: routeList.find(p => p.id === selected.id) ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)',
+                border: routeList.find(p => p.id === selected.id) ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                color: routeList.find(p => p.id === selected.id) ? '#22c55e' : 'rgba(255,255,255,0.6)',
+                fontSize: 13, fontWeight: 600,
+              }}
+            >
+              {routeList.find(p => p.id === selected.id) ? '✓ Added' : '＋ Route'}
+            </button>
+          </div>
           <div style={{
             marginTop: 10, padding: '5px 12px', borderRadius: 5, fontSize: 11, fontWeight: 600,
             background: selected.production ? 'rgba(255,107,53,0.1)' : 'rgba(34,197,94,0.1)',
