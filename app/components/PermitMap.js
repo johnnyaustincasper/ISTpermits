@@ -73,8 +73,10 @@ function addLayers(map, data, onClickPermit) {
 
   if (map._permitClick) map.off('click', 'permits-main', map._permitClick);
   map._permitClick = (e) => {
-    const p = e.features[0].properties;
-    onClickPermit({ ...p, production: p.production === true || p.production === 'true' });
+    const f = e.features[0];
+    const p = f.properties;
+    const [lng, lat] = f.geometry.coordinates;
+    onClickPermit({ ...p, lat, lng, production: p.production === true || p.production === 'true' });
   };
   map.on('click', 'permits-main', map._permitClick);
   map.on('mouseenter', 'permits-main', () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -93,13 +95,38 @@ export default function PermitMap() {
   const [permits, setPermits] = useState(PERMITS);
   const [geocoding, setGeocoding] = useState(false);
 
+  const isMobile = useRef(false);
+
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) setPanelOpen(false);
+    if (typeof window !== 'undefined') {
+      isMobile.current = window.innerWidth < 768;
+      if (isMobile.current) setPanelOpen(false);
+    }
   }, []);
 
   const selectPermit = useCallback((props) => {
     setSelected(props);
-    if (typeof window !== 'undefined' && window.innerWidth < 768) setPanelOpen(false);
+    if (isMobile.current) {
+      setPanelOpen(false);
+      // Pan the map so the pin is in the upper third, leaving room for the detail card
+      if (mapRef.current) {
+        const coords = [Number(props.lng || 0), Number(props.lat || 0)];
+        if (coords[0] && coords[1]) {
+          mapRef.current.easeTo({
+            center: coords,
+            padding: { bottom: 280 },
+            duration: 400,
+          });
+        }
+      }
+    }
+  }, []);
+
+  const closeDetail = useCallback(() => {
+    setSelected(null);
+    if (isMobile.current && mapRef.current) {
+      mapRef.current.easeTo({ padding: { bottom: 0 }, duration: 300 });
+    }
   }, []);
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -170,11 +197,11 @@ export default function PermitMap() {
 
   const flyToCity = useCallback((city) => {
     setCurrentCity(city);
-    setSelected(null);
+    closeDetail();
     if (!mapRef.current) return;
     const coords = CITY_COORDS[city] || CITY_COORDS.All;
     mapRef.current.flyTo({ center: coords.center, zoom: coords.zoom, duration: 1000 });
-  }, []);
+  }, [closeDetail]);
 
   const changeStyle = useCallback((style) => {
     setMapStyle(style);
@@ -259,7 +286,7 @@ export default function PermitMap() {
             ))}
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 11, color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={customOnly} onChange={e => { setCustomOnly(e.target.checked); setSelected(null); }} style={{ accentColor: '#22c55e' }} />
+            <input type="checkbox" checked={customOnly} onChange={e => { setCustomOnly(e.target.checked); closeDetail(); }} style={{ accentColor: '#22c55e' }} />
             Custom builders only
           </label>
         </div>
@@ -308,10 +335,12 @@ export default function PermitMap() {
 
       {selected && (
         <div style={{
-          position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 20,
+          position: 'absolute', bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+          left: '50%', transform: 'translateX(-50%)', zIndex: 20,
           width: 'calc(100% - 24px)', maxWidth: 560, background: 'rgba(10,10,10,0.94)',
           border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '14px 16px',
           backdropFilter: 'blur(16px)', boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+          maxHeight: '40vh', overflowY: 'auto',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
             <div>
@@ -320,7 +349,7 @@ export default function PermitMap() {
                 {selected.address} — {selected.city}{selected.subdivision ? ` — ${selected.subdivision}` : ''}
               </div>
             </div>
-            <button onClick={() => setSelected(null)} style={{
+            <button onClick={closeDetail} style={{
               background: 'none', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)',
               cursor: 'pointer', borderRadius: 4, padding: '3px 10px', fontSize: 11, fontFamily: 'inherit',
             }}>✕</button>
