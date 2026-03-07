@@ -373,6 +373,19 @@ export default function PermitMap() {
             ))}
           </div>
           {selected.contact && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>Contact: {selected.contact}</div>}
+          <a
+            href={`maps://maps.apple.com/?q=${encodeURIComponent(selected.address + ', ' + selected.city + ', OK')}&ll=${selected.lat},${selected.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              marginTop: 12, width: '100%', padding: '10px 0', borderRadius: 8,
+              background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)',
+              color: '#4da6ff', fontSize: 13, fontWeight: 600, textDecoration: 'none',
+            }}
+          >
+            📍 Open in Apple Maps
+          </a>
           <div style={{
             marginTop: 10, padding: '5px 12px', borderRadius: 5, fontSize: 11, fontWeight: 600,
             background: selected.production ? 'rgba(255,107,53,0.1)' : 'rgba(34,197,94,0.1)',
