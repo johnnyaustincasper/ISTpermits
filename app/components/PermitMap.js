@@ -293,7 +293,7 @@ export default function PermitMap() {
         </div>
       </div>
 
-      <div style={{ position: 'absolute', top: 64, right: 12, zIndex: 10, display: 'flex', gap: 4 }}>
+      <div style={{ position: 'absolute', top: 100, right: 12, zIndex: 10, display: 'flex', gap: 4 }}>
         {Object.keys(STYLES).map(s => (
           <button key={s} onClick={() => changeStyle(s)} style={{
             padding: '6px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
@@ -306,7 +306,7 @@ export default function PermitMap() {
       </div>
 
       <button onClick={() => setPanelOpen(prev => !prev)} style={{
-        position: 'absolute', top: 68, left: panelOpen ? 248 : 12, zIndex: 20,
+        position: 'absolute', top: 104, left: panelOpen ? 248 : 12, zIndex: 20,
         width: 36, height: 36, borderRadius: 8,
         background: 'rgba(10,10,10,0.88)', border: '1px solid rgba(255,255,255,0.12)',
         color: '#fff', cursor: 'pointer', backdropFilter: 'blur(12px)',
@@ -314,7 +314,7 @@ export default function PermitMap() {
         fontSize: 14, fontFamily: 'monospace', transition: 'left 0.3s ease',
       }}>{panelOpen ? '◀' : '☰'}</button>
 
-      <div style={{ position: 'absolute', top: 64, left: panelOpen ? 12 : -250, zIndex: 10, width: 230, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 80px)', overflowY: 'auto', transition: 'left 0.3s ease' }}>
+      <div style={{ position: 'absolute', top: 100, left: panelOpen ? 12 : -250, zIndex: 10, width: 230, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 80px)', overflowY: 'auto', transition: 'left 0.3s ease' }}>
         <div style={cardStyle}>
           <div style={cardTitleStyle}>Filter</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
