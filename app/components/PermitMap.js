@@ -352,6 +352,7 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [notes, setNotes] = useState(() => loadNotes(activeUser));
   const [noteText, setNoteText] = useState('');
   const [showRoutePanel, setShowRoutePanel] = useState(false);
+  const [showTeamPanel, setShowTeamPanel] = useState(false);
   const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
 
   const isMobile = useRef(false);
@@ -584,7 +585,7 @@ function PermitMapInner({ activeUser, onLogout }) {
 
       {/* Route list toggle button */}
       {routeList.length > 0 && !selected && (
-        <button onClick={() => { setShowRoutePanel(prev => !prev); setPanelOpen(false); }} style={{
+        <button onClick={() => { setShowRoutePanel(prev => !prev); setShowTeamPanel(false); setPanelOpen(false); }} style={{
           position: 'absolute', top: 'calc(132px + env(safe-area-inset-top, 0px))', left: 12, zIndex: 20,
           padding: '10px 16px', borderRadius: 10,
           background: T.blue, border: 'none',
@@ -592,6 +593,153 @@ function PermitMapInner({ activeUser, onLogout }) {
           fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
         }}>🗺 Route ({routeList.length})</button>
       )}
+
+      {/* Team button */}
+      {!selected && (
+        <button onClick={() => { setShowTeamPanel(prev => !prev); setShowRoutePanel(false); setPanelOpen(false); }} style={{
+          position: 'absolute', top: 'calc(132px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
+          padding: '10px 16px', borderRadius: 10,
+          background: showTeamPanel ? T.blue : T.card,
+          border: showTeamPanel ? 'none' : `1px solid ${T.cardBorder}`,
+          color: showTeamPanel ? '#fff' : T.text,
+          cursor: 'pointer', boxShadow: T.shadow,
+          fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+        }}>👥 Team</button>
+      )}
+
+      {/* Team Panel */}
+      {showTeamPanel && !selected && (() => {
+        const allPins = loadPins();
+        const teamData = SALESMEN.map(name => ({
+          name,
+          statuses: loadStatuses(name),
+          route: loadRoute(name),
+        }));
+
+        // Build builder → [{ user, permitId, address }] map
+        const builderMap = {};
+        teamData.forEach(({ name, statuses, route }) => {
+          // From statuses (called/quoted/won)
+          Object.entries(statuses).forEach(([id, status]) => {
+            if (status === 'pass') return;
+            const permit = PERMITS.find(p => String(p.id) === String(id));
+            if (!permit) return;
+            const key = permit.builder.toLowerCase().trim();
+            if (!builderMap[key]) builderMap[key] = [];
+            builderMap[key].push({ user: name, permitId: id, address: permit.address, status, builder: permit.builder });
+          });
+          // From route
+          route.forEach(permit => {
+            const key = permit.builder.toLowerCase().trim();
+            if (!builderMap[key]) builderMap[key] = [];
+            // Avoid dupes
+            if (!builderMap[key].find(e => e.user === name && e.permitId === String(permit.id))) {
+              builderMap[key].push({ user: name, permitId: String(permit.id), address: permit.address, status: 'route', builder: permit.builder });
+            }
+          });
+        });
+
+        // Builders with multiple users = conflict
+        const conflicts = Object.entries(builderMap).filter(([, entries]) => {
+          const users = [...new Set(entries.map(e => e.user))];
+          return users.length > 1;
+        });
+
+        const statusColors = { called: '#f59e0b', quoted: '#8b5cf6', won: '#16a34a', route: T.blue };
+        const statusLabels = { called: 'Called', quoted: 'Quoted', won: 'Won', route: 'On Route' };
+
+        return (
+          <div style={{
+            position: 'absolute', top: 'calc(76px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 30,
+            width: 300, maxHeight: 'calc(100vh - 160px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))',
+            background: T.card, borderRadius: 16, boxShadow: T.shadowLg,
+            border: `1px solid ${T.cardBorder}`, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 800, fontSize: 16, color: T.text }}>👥 Team Overview</span>
+              <button onClick={() => setShowTeamPanel(false)} style={ghostBtn}>✕</button>
+            </div>
+            <div style={{ overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+              {/* Conflicts */}
+              {conflicts.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    ⚠️ OVERLAP — {conflicts.length} builder{conflicts.length > 1 ? 's' : ''}
+                  </div>
+                  {conflicts.map(([key, entries]) => {
+                    const builderName = entries[0].builder;
+                    const byUser = {};
+                    entries.forEach(e => { if (!byUser[e.user]) byUser[e.user] = []; byUser[e.user].push(e); });
+                    return (
+                      <div key={key} style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: '#991b1b', marginBottom: 6 }}>{builderName}</div>
+                        {Object.entries(byUser).map(([user, items]) => (
+                          <div key={user} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: T.blue, minWidth: 52 }}>{user}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              {items.map((e, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: statusColors[e.status] || T.textSub, background: `${statusColors[e.status]}20`, padding: '1px 5px', borderRadius: 4 }}>{statusLabels[e.status] || e.status}</span>
+                                  <span style={{ fontSize: 11, color: T.textSub }}>{e.address}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Per-salesman summary */}
+              {teamData.map(({ name, statuses, route }) => {
+                const activeStatuses = Object.entries(statuses).filter(([, s]) => s !== 'pass');
+                return (
+                  <div key={name}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: name === activeUser ? T.blue : T.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {name} {name === activeUser && <span style={{ fontSize: 10, color: T.blue, fontWeight: 600 }}>(you)</span>}
+                    </div>
+                    {route.length === 0 && activeStatuses.length === 0 ? (
+                      <div style={{ fontSize: 12, color: T.textMuted, fontStyle: 'italic' }}>No activity yet</div>
+                    ) : (
+                      <>
+                        {route.length > 0 && (
+                          <div style={{ marginBottom: 8 }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: T.textSub, marginBottom: 4 }}>🗺 Route ({route.length})</div>
+                            {route.map(p => (
+                              <div key={p.id} style={{ fontSize: 12, color: T.text, padding: '3px 0', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ fontWeight: 600 }}>{p.builder}</span>
+                                <span style={{ color: T.textMuted }}>{p.address}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {activeStatuses.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: T.textSub, marginBottom: 4 }}>📋 Working ({activeStatuses.length})</div>
+                            {activeStatuses.map(([id, status]) => {
+                              const permit = PERMITS.find(p => String(p.id) === String(id));
+                              if (!permit) return null;
+                              return (
+                                <div key={id} style={{ fontSize: 12, color: T.text, padding: '3px 0', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontWeight: 600 }}>{permit.builder}</span>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: statusColors[status], background: `${statusColors[status]}20`, padding: '1px 6px', borderRadius: 4 }}>{statusLabels[status]}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Sidebar */}
       <div style={{ position: 'absolute', top: 'calc(76px + env(safe-area-inset-top, 0px))', left: panelOpen ? 12 : -260, zIndex: 10, width: 238, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 120px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))', overflowY: 'auto', transition: 'left 0.3s ease', paddingBottom: 16 }}>
