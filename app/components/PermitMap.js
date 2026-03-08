@@ -78,55 +78,88 @@ function saveSession(user) {
 
 // ─── Login Screen ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
-  const [step, setStep] = useState('pick');
+  const [step, setStep] = useState('pick'); // pick | pin | setup | confirm
   const [selectedUser, setSelectedUser] = useState(null);
   const [pin, setPin] = useState('');
+  const [setupPin, setSetupPin] = useState('');
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(false);
+  const [hasPin, setHasPin] = useState(null);
 
-  function handleSelectUser(name) {
+  async function handleSelectUser(name) {
     setSelectedUser(name);
-    setPin('');
-    setError('');
-    setStep('pin');
+    setPin(''); setSetupPin(''); setError('');
+    setChecking(true);
+    try {
+      const res = await fetch(`/api/pin?user=${name}`);
+      const data = await res.json();
+      setHasPin(data.hasPin);
+      setStep(data.hasPin ? 'pin' : 'setup');
+    } catch {
+      setError('Connection error.'); setStep('pin');
+    } finally { setChecking(false); }
   }
 
   async function handlePinDigit(digit) {
+    if (checking) return;
+
+    if (step === 'setup') {
+      const next = setupPin + digit;
+      if (next.length > 4) return;
+      setSetupPin(next);
+      if (next.length === 4) { setStep('confirm'); setPin(''); setError(''); }
+      return;
+    }
+
+    if (step === 'confirm') {
+      const next = pin + digit;
+      if (next.length > 4) return;
+      setPin(next);
+      if (next.length === 4) {
+        if (next !== setupPin) {
+          setError("PINs don't match. Try again.");
+          setPin(''); setSetupPin(''); setStep('setup');
+          return;
+        }
+        setChecking(true);
+        try {
+          await fetch('/api/pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: selectedUser, pin: next, action: 'set' }) });
+          saveSession(selectedUser);
+          onLogin(selectedUser);
+        } catch { setError('Connection error.'); } finally { setChecking(false); }
+      }
+      return;
+    }
+
+    // step === 'pin' — verify
     const next = pin + digit;
     if (next.length > 4) return;
     setPin(next);
     if (next.length === 4) {
       setChecking(true);
       try {
-        const res = await fetch('/api/pin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user: selectedUser, pin: next }),
-        });
+        const res = await fetch('/api/pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: selectedUser, pin: next }) });
         const data = await res.json();
-        if (data.ok) {
-          saveSession(selectedUser);
-          onLogin(selectedUser);
-        } else {
-          setError('Wrong PIN. Try again.');
-          setPin('');
-        }
-      } catch {
-        setError('Connection error. Try again.');
-        setPin('');
-      } finally {
-        setChecking(false);
-      }
+        if (data.ok) { saveSession(selectedUser); onLogin(selectedUser); }
+        else { setError('Wrong PIN. Try again.'); setPin(''); }
+      } catch { setError('Connection error.'); setPin(''); }
+      finally { setChecking(false); }
     }
   }
 
   function handleBackspace() {
-    setPin(p => p.slice(0, -1));
+    if (step === 'setup') setSetupPin(p => p.slice(0, -1));
+    else setPin(p => p.slice(0, -1));
     setError('');
   }
 
-  const title = step === 'pick' ? 'Who are you?' : `Welcome, ${selectedUser}`;
-  const subtitle = step === 'pick' ? 'Select your name to continue' : 'Enter your PIN';
+  const displayPin = step === 'setup' ? setupPin : pin;
+  const title = step === 'pick' ? 'Who are you?' :
+    step === 'setup' ? 'Create your PIN' :
+    step === 'confirm' ? 'Confirm your PIN' : `Hi, ${selectedUser}`;
+  const subtitle = step === 'pick' ? 'Select your name to continue' :
+    step === 'setup' ? "You'll use this every time you log in" :
+    step === 'confirm' ? 'Enter your PIN one more time' : 'Enter your PIN';
 
   return (
     <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
@@ -139,7 +172,7 @@ function LoginScreen({ onLogin }) {
         <div style={{ fontSize: 22, fontWeight: 700, color: T.text, textAlign: 'center', marginBottom: 6 }}>{title}</div>
         <div style={{ fontSize: 14, color: T.textSub, textAlign: 'center', marginBottom: 32 }}>{subtitle}</div>
 
-        {step === 'pick' && (
+        {step === 'pick' && !checking && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {SALESMEN.map(name => (
               <button key={name} onClick={() => handleSelectUser(name)} style={{
@@ -152,13 +185,17 @@ function LoginScreen({ onLogin }) {
           </div>
         )}
 
-        {step === 'pin' && (
+        {step === 'pick' && checking && (
+          <div style={{ textAlign: 'center', color: T.textSub, fontSize: 15 }}>Loading…</div>
+        )}
+
+        {(step === 'pin' || step === 'setup' || step === 'confirm') && (
           <>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 32 }}>
               {[0,1,2,3].map(i => (
                 <div key={i} style={{
                   width: 18, height: 18, borderRadius: '50%',
-                  background: i < pin.length ? T.blue : 'rgba(0,0,0,0.12)',
+                  background: i < displayPin.length ? T.blue : 'rgba(0,0,0,0.12)',
                   transition: 'background 0.15s',
                 }} />
               ))}
@@ -185,7 +222,7 @@ function LoginScreen({ onLogin }) {
               })}
             </div>
 
-            <button onClick={() => { setStep('pick'); setPin(''); setError(''); }} style={{
+            <button onClick={() => { setStep('pick'); setPin(''); setSetupPin(''); setError(''); }} style={{
               width: '100%', padding: '12px', background: 'none', border: 'none',
               color: T.textSub, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
             }}>← Back</button>
