@@ -37,7 +37,6 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 const NOTES_KEY = (user) => `ist-permit-notes-${user}`;
 const ROUTE_KEY = (user) => `ist-route-list-${user}`;
 const STATUS_KEY = (user) => `ist-permit-status-${user}`;
-const PINS_KEY = 'ist-salesman-pins';
 const SESSION_KEY = 'ist-active-user';
 const SALESMEN = ['Johnny', 'Jordan', 'Skip'];
 
@@ -69,13 +68,6 @@ function loadRoute(user) {
 function saveRoute(user, r) {
   if (typeof window !== 'undefined') localStorage.setItem(ROUTE_KEY(user), JSON.stringify(r));
 }
-function loadPins() {
-  if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem(PINS_KEY) || '{}'); } catch { return {}; }
-}
-function savePins(p) {
-  if (typeof window !== 'undefined') localStorage.setItem(PINS_KEY, JSON.stringify(p));
-}
 function loadSession() {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(SESSION_KEY) || null;
@@ -86,90 +78,59 @@ function saveSession(user) {
 
 // ─── Login Screen ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
-  const [step, setStep] = useState('pick'); // pick | pin | setup
+  const [step, setStep] = useState('pick');
   const [selectedUser, setSelectedUser] = useState(null);
   const [pin, setPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [confirmStep, setConfirmStep] = useState(false);
   const [error, setError] = useState('');
-  const pins = loadPins();
-  const needsSetup = selectedUser && !pins[selectedUser];
+  const [checking, setChecking] = useState(false);
 
   function handleSelectUser(name) {
     setSelectedUser(name);
     setPin('');
-    setConfirmPin('');
     setError('');
-    setConfirmStep(false);
-    setStep(pins[name] ? 'pin' : 'setup');
+    setStep('pin');
   }
 
-  function handlePinDigit(digit) {
-    if (step === 'setup') {
-      if (!confirmStep) {
-        const next = pin + digit;
-        if (next.length <= 4) {
-          setPin(next);
-          if (next.length === 4) { setConfirmStep(true); setError(''); }
+  async function handlePinDigit(digit) {
+    const next = pin + digit;
+    if (next.length > 4) return;
+    setPin(next);
+    if (next.length === 4) {
+      setChecking(true);
+      try {
+        const res = await fetch('/api/pin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: selectedUser, pin: next }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          saveSession(selectedUser);
+          onLogin(selectedUser);
+        } else {
+          setError('Wrong PIN. Try again.');
+          setPin('');
         }
-      } else {
-        const next = confirmPin + digit;
-        if (next.length <= 4) {
-          setConfirmPin(next);
-          if (next.length === 4) {
-            if (pin === next) {
-              const updated = { ...pins, [selectedUser]: next };
-              savePins(updated);
-              saveSession(selectedUser);
-              onLogin(selectedUser);
-            } else {
-              setError("PINs don't match. Try again.");
-              setConfirmPin('');
-              setPin('');
-              setConfirmStep(false);
-            }
-          }
-        }
-      }
-    } else {
-      const next = pin + digit;
-      if (next.length <= 4) {
-        setPin(next);
-        if (next.length === 4) {
-          if (pins[selectedUser] === next) {
-            saveSession(selectedUser);
-            onLogin(selectedUser);
-          } else {
-            setError('Wrong PIN. Try again.');
-            setPin('');
-          }
-        }
+      } catch {
+        setError('Connection error. Try again.');
+        setPin('');
+      } finally {
+        setChecking(false);
       }
     }
   }
 
   function handleBackspace() {
-    if (step === 'setup') {
-      if (confirmStep) setConfirmPin(p => p.slice(0,-1));
-      else setPin(p => p.slice(0,-1));
-    } else {
-      setPin(p => p.slice(0,-1));
-    }
+    setPin(p => p.slice(0, -1));
     setError('');
   }
 
-  const displayPin = step === 'setup' && confirmStep ? confirmPin : pin;
-  const title = step === 'pick' ? 'Who are you?' :
-    step === 'setup' && !confirmStep ? 'Create a 4-digit PIN' :
-    step === 'setup' && confirmStep ? 'Confirm your PIN' : `Welcome, ${selectedUser}`;
-  const subtitle = step === 'pick' ? 'Select your name to continue' :
-    step === 'setup' && !confirmStep ? "You'll use this every time you log in" :
-    step === 'setup' && confirmStep ? 'Enter your PIN again to confirm' : 'Enter your PIN';
+  const title = step === 'pick' ? 'Who are you?' : `Welcome, ${selectedUser}`;
+  const subtitle = step === 'pick' ? 'Select your name to continue' : 'Enter your PIN';
 
   return (
     <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
       <div style={{ width: '100%', maxWidth: 360 }}>
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 }}>Insulation Services of Tulsa</div>
           <div style={{ fontSize: 28, fontWeight: 900, color: T.text, letterSpacing: 1 }}>IST Permits</div>
@@ -178,7 +139,6 @@ function LoginScreen({ onLogin }) {
         <div style={{ fontSize: 22, fontWeight: 700, color: T.text, textAlign: 'center', marginBottom: 6 }}>{title}</div>
         <div style={{ fontSize: 14, color: T.textSub, textAlign: 'center', marginBottom: 32 }}>{subtitle}</div>
 
-        {/* Name picker */}
         {step === 'pick' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {SALESMEN.map(name => (
@@ -187,47 +147,45 @@ function LoginScreen({ onLogin }) {
                 background: '#fff', border: `2px solid ${T.cardBorder}`, color: T.text,
                 cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              }}>
-                {name}
-                {!pins[name] && <span style={{ fontSize: 11, fontWeight: 500, color: T.textMuted, marginLeft: 10 }}>First time — set PIN</span>}
-              </button>
+              }}>{name}</button>
             ))}
           </div>
         )}
 
-        {/* PIN pad */}
-        {(step === 'pin' || step === 'setup') && (
+        {step === 'pin' && (
           <>
-            {/* Dots */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 32 }}>
               {[0,1,2,3].map(i => (
                 <div key={i} style={{
                   width: 18, height: 18, borderRadius: '50%',
-                  background: i < displayPin.length ? T.blue : 'rgba(0,0,0,0.12)',
+                  background: i < pin.length ? T.blue : 'rgba(0,0,0,0.12)',
                   transition: 'background 0.15s',
                 }} />
               ))}
             </div>
 
-            {/* Error */}
             {error && <div style={{ textAlign: 'center', color: '#dc2626', fontSize: 14, marginBottom: 16, fontWeight: 500 }}>{error}</div>}
+            {checking && <div style={{ textAlign: 'center', color: T.textSub, fontSize: 14, marginBottom: 16 }}>Checking…</div>}
 
-            {/* Numpad */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
               {[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((d, i) => {
                 if (d === '') return <div key={i} />;
                 return (
-                  <button key={i} onClick={() => d === '⌫' ? handleBackspace() : handlePinDigit(String(d))} style={{
-                    padding: '20px 0', borderRadius: 14, fontSize: d === '⌫' ? 22 : 24, fontWeight: 600,
-                    background: '#fff', border: `1.5px solid ${T.cardBorder}`, color: T.text,
-                    cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}>{d}</button>
+                  <button key={i} onClick={() => d === '⌫' ? handleBackspace() : handlePinDigit(String(d))}
+                    disabled={checking}
+                    style={{
+                      padding: '20px 0', borderRadius: 14, fontSize: d === '⌫' ? 22 : 24, fontWeight: 600,
+                      background: '#fff', border: `1.5px solid ${T.cardBorder}`, color: T.text,
+                      cursor: checking ? 'default' : 'pointer', fontFamily: 'inherit',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      WebkitTapHighlightColor: 'transparent',
+                      opacity: checking ? 0.5 : 1,
+                    }}>{d}</button>
                 );
               })}
             </div>
 
-            <button onClick={() => { setStep('pick'); setPin(''); setConfirmPin(''); setError(''); }} style={{
+            <button onClick={() => { setStep('pick'); setPin(''); setError(''); }} style={{
               width: '100%', padding: '12px', background: 'none', border: 'none',
               color: T.textSub, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
             }}>← Back</button>
@@ -609,7 +567,6 @@ function PermitMapInner({ activeUser, onLogout }) {
 
       {/* Team Panel */}
       {showTeamPanel && !selected && (() => {
-        const allPins = loadPins();
         const teamData = SALESMEN.map(name => ({
           name,
           statuses: loadStatuses(name),
