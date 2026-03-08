@@ -34,9 +34,12 @@ const STYLES = {
 };
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const NOTES_KEY = 'ist-permit-notes';
-const ROUTE_KEY = 'ist-route-list';
-const STATUS_KEY = 'ist-permit-status';
+const NOTES_KEY = (user) => `ist-permit-notes-${user}`;
+const ROUTE_KEY = (user) => `ist-route-list-${user}`;
+const STATUS_KEY = (user) => `ist-permit-status-${user}`;
+const PINS_KEY = 'ist-salesman-pins';
+const SESSION_KEY = 'ist-active-user';
+const SALESMEN = ['Johnny', 'Jordan', 'Skip'];
 
 const STATUSES = [
   { key: 'called',    label: 'Called',        color: '#f59e0b', dot: '#f59e0b' },
@@ -45,27 +48,194 @@ const STATUSES = [
   { key: 'pass',      label: 'Not Interested', color: '#6b7280', dot: '#9ca3af' },
 ];
 
-function loadStatuses() {
+function loadStatuses(user) {
   if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem(STATUS_KEY) || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem(STATUS_KEY(user)) || '{}'); } catch { return {}; }
 }
-function saveStatuses(s) {
-  if (typeof window !== 'undefined') localStorage.setItem(STATUS_KEY, JSON.stringify(s));
+function saveStatuses(user, s) {
+  if (typeof window !== 'undefined') localStorage.setItem(STATUS_KEY(user), JSON.stringify(s));
+}
+function loadNotes(user) {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem(NOTES_KEY(user)) || '{}'); } catch { return {}; }
+}
+function saveNotes(user, n) {
+  if (typeof window !== 'undefined') localStorage.setItem(NOTES_KEY(user), JSON.stringify(n));
+}
+function loadRoute(user) {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(ROUTE_KEY(user)) || '[]'); } catch { return []; }
+}
+function saveRoute(user, r) {
+  if (typeof window !== 'undefined') localStorage.setItem(ROUTE_KEY(user), JSON.stringify(r));
+}
+function loadPins() {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem(PINS_KEY) || '{}'); } catch { return {}; }
+}
+function savePins(p) {
+  if (typeof window !== 'undefined') localStorage.setItem(PINS_KEY, JSON.stringify(p));
+}
+function loadSession() {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(SESSION_KEY) || null;
+}
+function saveSession(user) {
+  if (typeof window !== 'undefined') localStorage.setItem(SESSION_KEY, user || '');
 }
 
-function loadNotes() {
-  if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); } catch { return {}; }
-}
-function saveNotes(n) {
-  if (typeof window !== 'undefined') localStorage.setItem(NOTES_KEY, JSON.stringify(n));
-}
-function loadRoute() {
-  if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem(ROUTE_KEY) || '[]'); } catch { return []; }
-}
-function saveRoute(r) {
-  if (typeof window !== 'undefined') localStorage.setItem(ROUTE_KEY, JSON.stringify(r));
+// ─── Login Screen ─────────────────────────────────────────────────────────────
+function LoginScreen({ onLogin }) {
+  const [step, setStep] = useState('pick'); // pick | pin | setup
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [confirmStep, setConfirmStep] = useState(false);
+  const [error, setError] = useState('');
+  const pins = loadPins();
+  const needsSetup = selectedUser && !pins[selectedUser];
+
+  function handleSelectUser(name) {
+    setSelectedUser(name);
+    setPin('');
+    setConfirmPin('');
+    setError('');
+    setConfirmStep(false);
+    setStep(pins[name] ? 'pin' : 'setup');
+  }
+
+  function handlePinDigit(digit) {
+    if (step === 'setup') {
+      if (!confirmStep) {
+        const next = pin + digit;
+        if (next.length <= 4) {
+          setPin(next);
+          if (next.length === 4) { setConfirmStep(true); setError(''); }
+        }
+      } else {
+        const next = confirmPin + digit;
+        if (next.length <= 4) {
+          setConfirmPin(next);
+          if (next.length === 4) {
+            if (pin === next) {
+              const updated = { ...pins, [selectedUser]: next };
+              savePins(updated);
+              saveSession(selectedUser);
+              onLogin(selectedUser);
+            } else {
+              setError("PINs don't match. Try again.");
+              setConfirmPin('');
+              setPin('');
+              setConfirmStep(false);
+            }
+          }
+        }
+      }
+    } else {
+      const next = pin + digit;
+      if (next.length <= 4) {
+        setPin(next);
+        if (next.length === 4) {
+          if (pins[selectedUser] === next) {
+            saveSession(selectedUser);
+            onLogin(selectedUser);
+          } else {
+            setError('Wrong PIN. Try again.');
+            setPin('');
+          }
+        }
+      }
+    }
+  }
+
+  function handleBackspace() {
+    if (step === 'setup') {
+      if (confirmStep) setConfirmPin(p => p.slice(0,-1));
+      else setPin(p => p.slice(0,-1));
+    } else {
+      setPin(p => p.slice(0,-1));
+    }
+    setError('');
+  }
+
+  const displayPin = step === 'setup' && confirmStep ? confirmPin : pin;
+  const title = step === 'pick' ? 'Who are you?' :
+    step === 'setup' && !confirmStep ? 'Create a 4-digit PIN' :
+    step === 'setup' && confirmStep ? 'Confirm your PIN' : `Welcome, ${selectedUser}`;
+  const subtitle = step === 'pick' ? 'Select your name to continue' :
+    step === 'setup' && !confirmStep ? "You'll use this every time you log in" :
+    step === 'setup' && confirmStep ? 'Enter your PIN again to confirm' : 'Enter your PIN';
+
+  return (
+    <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
+      <div style={{ width: '100%', maxWidth: 360 }}>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 }}>Insulation Services of Tulsa</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: T.text, letterSpacing: 1 }}>IST Permits</div>
+        </div>
+
+        <div style={{ fontSize: 22, fontWeight: 700, color: T.text, textAlign: 'center', marginBottom: 6 }}>{title}</div>
+        <div style={{ fontSize: 14, color: T.textSub, textAlign: 'center', marginBottom: 32 }}>{subtitle}</div>
+
+        {/* Name picker */}
+        {step === 'pick' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {SALESMEN.map(name => (
+              <button key={name} onClick={() => handleSelectUser(name)} style={{
+                padding: '18px 24px', borderRadius: 14, fontSize: 20, fontWeight: 700,
+                background: '#fff', border: `2px solid ${T.cardBorder}`, color: T.text,
+                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              }}>
+                {name}
+                {!pins[name] && <span style={{ fontSize: 11, fontWeight: 500, color: T.textMuted, marginLeft: 10 }}>First time — set PIN</span>}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* PIN pad */}
+        {(step === 'pin' || step === 'setup') && (
+          <>
+            {/* Dots */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 32 }}>
+              {[0,1,2,3].map(i => (
+                <div key={i} style={{
+                  width: 18, height: 18, borderRadius: '50%',
+                  background: i < displayPin.length ? T.blue : 'rgba(0,0,0,0.12)',
+                  transition: 'background 0.15s',
+                }} />
+              ))}
+            </div>
+
+            {/* Error */}
+            {error && <div style={{ textAlign: 'center', color: '#dc2626', fontSize: 14, marginBottom: 16, fontWeight: 500 }}>{error}</div>}
+
+            {/* Numpad */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+              {[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((d, i) => {
+                if (d === '') return <div key={i} />;
+                return (
+                  <button key={i} onClick={() => d === '⌫' ? handleBackspace() : handlePinDigit(String(d))} style={{
+                    padding: '20px 0', borderRadius: 14, fontSize: d === '⌫' ? 22 : 24, fontWeight: 600,
+                    background: '#fff', border: `1.5px solid ${T.cardBorder}`, color: T.text,
+                    cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}>{d}</button>
+                );
+              })}
+            </div>
+
+            <button onClick={() => { setStep('pick'); setPin(''); setConfirmPin(''); setError(''); }} style={{
+              width: '100%', padding: '12px', background: 'none', border: 'none',
+              color: T.textSub, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+            }}>← Back</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 const STATUS_COLORS = { called: '#f59e0b', quoted: '#8b5cf6', won: '#16a34a', pass: '#9ca3af' };
@@ -160,6 +330,13 @@ function addLayers(map, data, onClickPermit) {
 }
 
 export default function PermitMap() {
+  const [activeUser, setActiveUser] = useState(() => loadSession());
+
+  if (!activeUser) return <LoginScreen onLogin={setActiveUser} />;
+  return <PermitMapInner activeUser={activeUser} onLogout={() => { saveSession(null); setActiveUser(null); }} />;
+}
+
+function PermitMapInner({ activeUser, onLogout }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
@@ -170,12 +347,12 @@ export default function PermitMap() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [permits, setPermits] = useState(PERMITS);
   const [geocoding, setGeocoding] = useState(false);
-  const [routeList, setRouteList] = useState(() => loadRoute());
+  const [routeList, setRouteList] = useState(() => loadRoute(activeUser));
   const [currentMonth, setCurrentMonth] = useState('All');
-  const [notes, setNotes] = useState(() => loadNotes());
+  const [notes, setNotes] = useState(() => loadNotes(activeUser));
   const [noteText, setNoteText] = useState('');
   const [showRoutePanel, setShowRoutePanel] = useState(false);
-  const [statuses, setStatuses] = useState(() => loadStatuses());
+  const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
 
   const isMobile = useRef(false);
   useEffect(() => {
@@ -205,38 +382,38 @@ export default function PermitMap() {
   const saveNote = useCallback((id, text) => {
     const updated = { ...notes, [id]: text };
     setNotes(updated);
-    saveNotes(updated);
-  }, [notes]);
+    saveNotes(activeUser, updated);
+  }, [notes, activeUser]);
 
   const setStatus = useCallback((id, statusKey) => {
     setStatuses(prev => {
       const updated = statusKey ? { ...prev, [id]: statusKey } : Object.fromEntries(Object.entries(prev).filter(([k]) => k !== id));
-      saveStatuses(updated);
+      saveStatuses(activeUser, updated);
       return updated;
     });
-  }, []);
+  }, [activeUser]);
 
   const addToRoute = useCallback((permit) => {
     setRouteList(prev => {
       if (prev.find(p => p.id === permit.id)) return prev;
       const next = [...prev, permit];
-      saveRoute(next);
+      saveRoute(activeUser, next);
       return next;
     });
-  }, []);
+  }, [activeUser]);
 
   const removeFromRoute = useCallback((id) => {
     setRouteList(prev => {
       const next = prev.filter(p => p.id !== id);
-      saveRoute(next);
+      saveRoute(activeUser, next);
       return next;
     });
-  }, []);
+  }, [activeUser]);
 
   const clearRoute = useCallback(() => {
     setRouteList([]);
-    saveRoute([]);
-  }, []);
+    saveRoute(activeUser, []);
+  }, [activeUser]);
 
   const openAppleMapsRoute = useCallback(() => {
     if (routeList.length === 0) return;
@@ -369,9 +546,15 @@ export default function PermitMap() {
             </div>
             <div style={{ color: T.textSub, fontSize: 12, marginTop: 2 }}>NE Oklahoma — Nov 2025 through Feb 2026</div>
           </div>
-          <div style={{ color: T.textMuted, fontSize: 11, textAlign: 'right' }}>
-            <div style={{ fontWeight: 600 }}>{filtered.length} permits</div>
-            <div>{geocoding ? 'Geocoding...' : 'NOW Report Data'}</div>
+          <div style={{ textAlign: 'right', pointerEvents: 'auto' }}>
+            <div style={{ color: T.textMuted, fontSize: 11, marginBottom: 5 }}>
+              <div style={{ fontWeight: 600 }}>{filtered.length} permits</div>
+              <div>{geocoding ? 'Geocoding...' : 'NOW Report Data'}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: T.blue }}>{activeUser}</span>
+              <button onClick={onLogout} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, background: '#fff', border: `1px solid ${T.cardBorder}`, color: T.textSub, cursor: 'pointer', fontFamily: 'inherit' }}>Log out</button>
+            </div>
           </div>
         </div>
       </div>
