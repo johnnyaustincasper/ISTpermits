@@ -76,6 +76,74 @@ function saveSession(user) {
   if (typeof window !== 'undefined') localStorage.setItem(SESSION_KEY, user || '');
 }
 
+// ─── Intro Animation ──────────────────────────────────────────────────────────
+function IntroAnimation({ onDone }) {
+  const [fadeOut, setFadeOut] = useState(false);
+  useEffect(() => {
+    setTimeout(() => setFadeOut(true), 3000);
+    setTimeout(() => onDone(), 3600);
+  }, []);
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0a0f1e 0%, #1a2035 40%, #2d3a1e 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative', transition: 'opacity 0.6s ease', opacity: fadeOut ? 0 : 1 }}>
+      <style>{`
+        @keyframes ist_tornado { 0% { transform: translateX(0px) skewX(0deg); } 20% { transform: translateX(-6px) skewX(-3deg); } 40% { transform: translateX(4px) skewX(2deg); } 60% { transform: translateX(-3px) skewX(-1deg); } 80% { transform: translateX(5px) skewX(3deg); } 100% { transform: translateX(0px) skewX(0deg); } }
+        @keyframes ist_ringRotate { from { transform: rotateX(70deg) rotate(0deg); } to { transform: rotateX(70deg) rotate(360deg); } }
+        @keyframes ist_debris { 0% { transform: rotate(0deg) translateX(var(--r)) rotate(0deg) scale(1); opacity: 0.8; } 100% { transform: rotate(360deg) translateX(var(--r)) rotate(-360deg) scale(0.3); opacity: 0; } }
+        @keyframes ist_groundRumble { 0%,100% { transform: scaleX(1) scaleY(1); opacity: 0.4; } 50% { transform: scaleX(1.08) scaleY(0.7); opacity: 0.7; } }
+        @keyframes ist_istReveal { 0% { opacity: 0; letter-spacing: 20px; transform: translateY(10px); } 60% { opacity: 1; } 100% { opacity: 1; letter-spacing: 8px; transform: translateY(0); } }
+        @keyframes ist_taglineIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes ist_barLoad { 0% { width: 0%; } 20% { width: 25%; } 50% { width: 60%; } 80% { width: 85%; } 100% { width: 100%; } }
+        @keyframes ist_cloudMove { 0% { transform: translateX(0); } 100% { transform: translateX(-30px); } }
+        @keyframes ist_lightning1 { 0%,100% { opacity: 0; } 6% { opacity: 1; } 7% { opacity: 0.2; } 8% { opacity: 1; } 10% { opacity: 0; } }
+        @keyframes ist_lightning2 { 0%,100% { opacity: 0; } 35% { opacity: 0; } 36% { opacity: 1; } 37% { opacity: 0.1; } 38% { opacity: 0.9; } 40% { opacity: 0; } }
+        @keyframes ist_lightning3 { 0%,100% { opacity: 0; } 70% { opacity: 0; } 71% { opacity: 1; } 72% { opacity: 0.3; } 73% { opacity: 1; } 75% { opacity: 0; } }
+        @keyframes ist_skyFlash1 { 0%,100% { opacity: 0; } 6%,8% { opacity: 0.15; } 7% { opacity: 0.05; } 10% { opacity: 0; } }
+        @keyframes ist_skyFlash2 { 0%,100% { opacity: 0; } 36%,38% { opacity: 0.12; } 37% { opacity: 0.03; } 40% { opacity: 0; } }
+        @keyframes ist_skyFlash3 { 0%,100% { opacity: 0; } 71%,73% { opacity: 0.18; } 72% { opacity: 0.06; } 75% { opacity: 0; } }
+      `}</style>
+
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(180,200,255,1)', animation: 'ist_skyFlash1 5s linear infinite', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(160,190,255,1)', animation: 'ist_skyFlash2 5s linear infinite', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(200,210,255,1)', animation: 'ist_skyFlash3 5s linear infinite', pointerEvents: 'none' }} />
+
+      <div style={{ position: 'absolute', top: '5%', left: '15%', animation: 'ist_lightning1 5s linear infinite', filter: 'drop-shadow(0 0 6px rgba(150,180,255,0.9))' }}>
+        <svg width="40" height="120" viewBox="0 0 40 120" fill="none"><polyline points="22,0 10,35 18,35 6,70 16,70 0,120" stroke="rgba(220,235,255,0.95)" strokeWidth="2.5" strokeLinejoin="round"/><polyline points="6,70 20,90" stroke="rgba(200,220,255,0.6)" strokeWidth="1.5" strokeLinejoin="round"/><polyline points="16,70 28,95" stroke="rgba(200,220,255,0.5)" strokeWidth="1.2" strokeLinejoin="round"/></svg>
+      </div>
+      <div style={{ position: 'absolute', top: '3%', right: '18%', animation: 'ist_lightning2 5s linear infinite', filter: 'drop-shadow(0 0 8px rgba(180,200,255,1))' }}>
+        <svg width="30" height="90" viewBox="0 0 30 90" fill="none"><polyline points="18,0 8,28 16,28 4,60 14,60 2,90" stroke="rgba(230,240,255,0.98)" strokeWidth="3" strokeLinejoin="round"/><polyline points="4,60 18,78" stroke="rgba(210,225,255,0.55)" strokeWidth="1.5" strokeLinejoin="round"/></svg>
+      </div>
+      <div style={{ position: 'absolute', top: '8%', left: '58%', animation: 'ist_lightning3 5s linear infinite', filter: 'drop-shadow(0 0 4px rgba(160,190,255,0.8))' }}>
+        <svg width="20" height="70" viewBox="0 0 20 70" fill="none"><polyline points="12,0 5,22 11,22 3,45 9,45 0,70" stroke="rgba(210,228,255,0.85)" strokeWidth="1.8" strokeLinejoin="round"/><polyline points="3,45 14,60" stroke="rgba(190,215,255,0.4)" strokeWidth="1" strokeLinejoin="round"/></svg>
+      </div>
+
+      {[{ top: '4%', left: '-5%', w: 220, h: 55, delay: '0s', dur: '8s' }, { top: '10%', left: '30%', w: 180, h: 45, delay: '1s', dur: '10s' }, { top: '2%', left: '60%', w: 260, h: 60, delay: '0.5s', dur: '7s' }].map((c, i) => (
+        <div key={i} style={{ position: 'absolute', top: c.top, left: c.left, width: `${c.w}px`, height: `${c.h}px`, background: 'radial-gradient(ellipse, rgba(40,50,70,0.9) 0%, rgba(20,28,45,0.7) 70%, transparent 100%)', borderRadius: '50%', animation: `ist_cloudMove ${c.dur} ease-in-out infinite alternate`, animationDelay: c.delay, filter: 'blur(8px)' }} />
+      ))}
+
+      <div style={{ position: 'relative', marginBottom: '40px', animation: 'ist_tornado 2s ease-in-out infinite' }}>
+        {[0,1,2,3,4,5,6,7,8].map(i => (
+          <div key={i} style={{ width: `${100 - i * 10}px`, height: '16px', margin: '0 auto', marginBottom: '2px', borderRadius: '50%', background: `rgba(80,90,110,${0.55 - i * 0.04})`, border: `1.5px solid rgba(150,165,185,${0.6 - i * 0.05})`, boxShadow: `0 0 ${6 + i}px rgba(100,120,160,0.3)`, filter: i < 3 ? 'blur(1px)' : 'none', animation: `ist_ringRotate ${0.5 + i * 0.06}s linear infinite`, animationDirection: i % 2 === 0 ? 'normal' : 'reverse' }} />
+        ))}
+        <div style={{ position: 'absolute', top: '40%', left: '50%', width: 0, height: 0 }}>
+          {[...Array(10)].map((_, i) => (
+            <div key={i} style={{ position: 'absolute', width: `${2 + (i % 3)}px`, height: `${2 + (i % 2)}px`, background: `rgba(${150 + i * 8},${140 + i * 5},${100 + i * 4},0.8)`, borderRadius: i % 3 === 0 ? '0' : '50%', '--r': `${30 + (i % 4) * 12}px`, animation: `ist_debris ${1.2 + i * 0.18}s linear infinite`, animationDelay: `${i * 0.12}s` }} />
+          ))}
+        </div>
+        <div style={{ width: '140px', height: '28px', background: 'radial-gradient(ellipse, rgba(100,90,70,0.6) 0%, transparent 70%)', borderRadius: '50%', margin: '4px auto 0', animation: 'ist_groundRumble 0.8s ease-in-out infinite', filter: 'blur(4px)' }} />
+      </div>
+
+      <div style={{ textAlign: 'center', position: 'relative', zIndex: 10 }}>
+        <div style={{ fontSize: '36px', fontWeight: 900, color: '#f0f4ff', letterSpacing: '8px', textTransform: 'uppercase', textShadow: '0 0 30px rgba(100,140,255,0.4), 0 2px 8px rgba(0,0,0,0.8)', animation: 'ist_istReveal 1s cubic-bezier(0.16,1,0.3,1) forwards', animationDelay: '0.4s', opacity: 0 }}>IST</div>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(160,180,210,0.8)', letterSpacing: '4px', textTransform: 'uppercase', marginTop: '6px', animation: 'ist_taglineIn 0.6s ease forwards', animationDelay: '1s', opacity: 0 }}>INTEL</div>
+        <div style={{ width: '120px', height: '2px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', margin: '20px auto 0', overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: 'linear-gradient(90deg, #3b82f6, #60a5fa)', borderRadius: '2px', animation: 'ist_barLoad 3.5s cubic-bezier(0.4,0,0.2,1) forwards' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Login Screen ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
   const [step, setStep] = useState('pick'); // pick | pin | setup | confirm
@@ -326,7 +394,9 @@ function addLayers(map, data, onClickPermit) {
 
 export default function PermitMap() {
   const [activeUser, setActiveUser] = useState(() => loadSession());
+  const [introsDone, setIntrosDone] = useState(false);
 
+  if (!introsDone) return <IntroAnimation onDone={() => setIntrosDone(true)} />;
   if (!activeUser) return <LoginScreen onLogin={setActiveUser} />;
   return <PermitMapInner activeUser={activeUser} onLogout={() => { saveSession(null); setActiveUser(null); }} />;
 }
