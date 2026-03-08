@@ -162,9 +162,9 @@ function LoginScreen({ onLogin }) {
     step === 'confirm' ? 'Enter your PIN one more time' : 'Enter your PIN';
 
   return (
-    <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 'max(60px, env(safe-area-inset-top, 0px) + 40px)', padding: '0 24px 40px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
       <div style={{ width: '100%', maxWidth: 360 }}>
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+        <div style={{ textAlign: 'center', marginBottom: 28, marginTop: 'max(60px, env(safe-area-inset-top, 0px) + 40px)' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 }}>Insulation Services of Tulsa</div>
           <div style={{ fontSize: 28, fontWeight: 900, color: T.text, letterSpacing: 1 }}>IST Permits</div>
         </div>
