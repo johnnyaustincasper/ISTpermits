@@ -392,6 +392,188 @@ function addLayers(map, data, onClickPermit) {
   map.on('mouseleave', 'permits-hit', () => { map.getCanvas().style.cursor = ''; });
 }
 
+// ─── Team Page ────────────────────────────────────────────────────────────────
+function TeamPage({ activeUser, onClose }) {
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun
+  // Week starts Monday
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((dow + 6) % 7));
+
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+
+  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const statusColors = { called: '#f59e0b', quoted: '#8b5cf6', won: '#16a34a', route: T.blue, pass: '#9ca3af' };
+  const statusLabels = { called: 'Called', quoted: 'Quoted', won: 'Won', route: 'Route', pass: 'Pass' };
+
+  const teamData = SALESMEN.map(name => {
+    const statuses = loadStatuses(name);
+    const route = loadRoute(name);
+    const notes = loadNotes(name);
+
+    // Group activity by date — statuses/route don't have timestamps, so we show all active items
+    // on "this week" under today's column as a summary; notes have no date either.
+    // We'll show route items and active statuses under the current day column.
+    const activeStatuses = Object.entries(statuses).filter(([, s]) => s !== 'pass');
+    const passStatuses = Object.entries(statuses).filter(([, s]) => s === 'pass');
+
+    return { name, statuses, route, notes, activeStatuses, passStatuses };
+  });
+
+  // Build overlap map
+  const builderMap = {};
+  teamData.forEach(({ name, statuses, route }) => {
+    Object.entries(statuses).forEach(([id, status]) => {
+      if (status === 'pass') return;
+      const permit = PERMITS.find(p => String(p.id) === String(id));
+      if (!permit) return;
+      const key = permit.builder.toLowerCase().trim();
+      if (!builderMap[key]) builderMap[key] = [];
+      builderMap[key].push({ user: name, permitId: id, address: permit.address, status, builder: permit.builder });
+    });
+    route.forEach(permit => {
+      const key = permit.builder.toLowerCase().trim();
+      if (!builderMap[key]) builderMap[key] = [];
+      if (!builderMap[key].find(e => e.user === name && e.permitId === String(permit.id)))
+        builderMap[key].push({ user: name, permitId: String(permit.id), address: permit.address, status: 'route', builder: permit.builder });
+    });
+  });
+  const conflicts = Object.entries(builderMap).filter(([, entries]) => [...new Set(entries.map(e => e.user))].length > 1);
+
+  const todayStr = today.toISOString().slice(0, 10);
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 50,
+      background: T.bg, display: 'flex', flexDirection: 'column',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px 10px', borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: T.text, padding: '0 4px', fontFamily: 'inherit' }}>←</button>
+        <div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: T.text }}>👥 Team</div>
+          <div style={{ fontSize: 11, color: T.textMuted }}>
+            Week of {monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </div>
+        </div>
+        {conflicts.length > 0 && (
+          <div style={{ marginLeft: 'auto', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#dc2626' }}>
+            ⚠️ {conflicts.length} overlap{conflicts.length > 1 ? 's' : ''}
+          </div>
+        )}
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 24px' }}>
+
+        {/* Overlaps section */}
+        {conflicts.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 8 }}>⚠️ OVERLAPPING BUILDERS</div>
+            {conflicts.map(([key, entries]) => {
+              const builderName = entries[0].builder;
+              const byUser = {};
+              entries.forEach(e => { if (!byUser[e.user]) byUser[e.user] = []; byUser[e.user].push(e); });
+              return (
+                <div key={key} style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#991b1b', marginBottom: 6 }}>{builderName}</div>
+                  {Object.entries(byUser).map(([user, items]) => (
+                    <div key={user} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: T.blue, minWidth: 52 }}>{user}</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {items.map((e, i) => (
+                          <span key={i} style={{ fontSize: 10, fontWeight: 700, color: statusColors[e.status] || T.textSub, background: `${(statusColors[e.status] || '#ccc')}22`, padding: '2px 6px', borderRadius: 4 }}>{statusLabels[e.status] || e.status}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Per-salesman calendar week */}
+        {teamData.map(({ name, route, activeStatuses, passStatuses }) => (
+          <div key={name} style={{ marginBottom: 20, background: T.card, borderRadius: 14, border: `1px solid ${T.cardBorder}`, overflow: 'hidden', boxShadow: T.shadow }}>
+            {/* Salesman header */}
+            <div style={{ padding: '12px 14px', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', alignItems: 'center', gap: 8, background: name === activeUser ? T.blueLight : T.card }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: name === activeUser ? T.blue : T.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: name === activeUser ? '#fff' : T.textSub }}>
+                {name[0]}
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: name === activeUser ? T.blue : T.text }}>{name} {name === activeUser && <span style={{ fontSize: 10, fontWeight: 600 }}>(you)</span>}</div>
+                <div style={{ fontSize: 11, color: T.textMuted }}>{route.length} on route · {activeStatuses.length} active · {passStatuses.length} passed</div>
+              </div>
+            </div>
+
+            {/* Calendar week strip */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: `1px solid ${T.cardBorder}` }}>
+              {weekDays.map((d, i) => {
+                const ds = d.toISOString().slice(0, 10);
+                const isToday = ds === todayStr;
+                return (
+                  <div key={i} style={{ textAlign: 'center', padding: '8px 2px', background: isToday ? T.blueLight : 'transparent', borderRight: i < 6 ? `1px solid ${T.cardBorder}` : 'none' }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: isToday ? T.blue : T.textMuted, textTransform: 'uppercase' }}>{DAY_LABELS[i]}</div>
+                    <div style={{ fontSize: 14, fontWeight: isToday ? 800 : 500, color: isToday ? T.blue : T.text, marginTop: 2 }}>{d.getDate()}</div>
+                    {isToday && (
+                      <div style={{ marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2, padding: '0 2px' }}>
+                        {route.length > 0 && <div style={{ fontSize: 8, fontWeight: 700, background: `${T.blue}22`, color: T.blue, borderRadius: 3, padding: '1px 3px' }}>{route.length} route</div>}
+                        {activeStatuses.length > 0 && <div style={{ fontSize: 8, fontWeight: 700, background: '#f59e0b22', color: '#d97706', borderRadius: 3, padding: '1px 3px' }}>{activeStatuses.length} active</div>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Activity detail */}
+            <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {route.length === 0 && activeStatuses.length === 0 ? (
+                <div style={{ fontSize: 12, color: T.textMuted, fontStyle: 'italic', textAlign: 'center', padding: '8px 0' }}>No activity this week</div>
+              ) : (
+                <>
+                  {route.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: T.blue, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>🗺 Route ({route.length})</div>
+                      {route.map(p => (
+                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: `1px solid ${T.cardBorder}` }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{p.builder}</span>
+                          <span style={{ fontSize: 11, color: T.textMuted }}>{p.address?.split(',')[0]}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {activeStatuses.length > 0 && (
+                    <div style={{ marginTop: route.length > 0 ? 10 : 0 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: T.textSub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>📋 Working ({activeStatuses.length})</div>
+                      {activeStatuses.map(([id, status]) => {
+                        const permit = PERMITS.find(p => String(p.id) === String(id));
+                        if (!permit) return null;
+                        return (
+                          <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: `1px solid ${T.cardBorder}` }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{permit.builder}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: statusColors[status], background: `${statusColors[status]}18`, padding: '2px 8px', borderRadius: 5 }}>{statusLabels[status]}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function PermitMap() {
   const [activeUser, setActiveUser] = useState(() => loadSession());
   const [introsDone, setIntrosDone] = useState(false);
@@ -418,6 +600,7 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [noteText, setNoteText] = useState('');
   const [showRoutePanel, setShowRoutePanel] = useState(false);
   const [showTeamPanel, setShowTeamPanel] = useState(false);
+  const [teamView, setTeamView] = useState(false);
   const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
 
   const isMobile = useRef(false);
@@ -608,7 +791,7 @@ function PermitMapInner({ activeUser, onLogout }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 9, height: 9, borderRadius: '50%', background: T.blue }} />
-              <span style={{ color: T.text, fontSize: 18, fontWeight: 800, letterSpacing: 0.3 }}>IST Permit Intel</span>
+              <span style={{ color: T.text, fontSize: 18, fontWeight: 800, letterSpacing: 0.3 }}>IST Intel</span>
             </div>
             <div style={{ color: T.textSub, fontSize: 12, marginTop: 2 }}>NE Oklahoma — Nov 2025 through Feb 2026</div>
           </div>
@@ -661,18 +844,21 @@ function PermitMapInner({ activeUser, onLogout }) {
 
       {/* Team button */}
       {!selected && (
-        <button onClick={() => { setShowTeamPanel(prev => !prev); setShowRoutePanel(false); setPanelOpen(false); }} style={{
+        <button onClick={() => { setTeamView(true); setShowRoutePanel(false); setShowTeamPanel(false); setPanelOpen(false); }} style={{
           position: 'absolute', top: 'calc(132px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
           padding: '10px 16px', borderRadius: 10,
-          background: showTeamPanel ? T.blue : T.card,
-          border: showTeamPanel ? 'none' : `1px solid ${T.cardBorder}`,
-          color: showTeamPanel ? '#fff' : T.text,
+          background: T.card,
+          border: `1px solid ${T.cardBorder}`,
+          color: T.text,
           cursor: 'pointer', boxShadow: T.shadow,
           fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
         }}>👥 Team</button>
       )}
 
-      {/* Team Panel */}
+      {/* Team Full Page */}
+      {teamView && <TeamPage activeUser={activeUser} onClose={() => setTeamView(false)} />}
+
+      {/* Team Panel (legacy, unused) */}
       {showTeamPanel && !selected && (() => {
         const teamData = SALESMEN.map(name => ({
           name,
