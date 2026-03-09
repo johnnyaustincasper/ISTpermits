@@ -420,7 +420,7 @@ function addLayers(map, data, onClickPermit) {
 }
 
 // ─── Team Page ────────────────────────────────────────────────────────────────
-function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addToDailyRoute, removeFromDailyRoute }) {
+function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addToDailyRoute, removeFromDailyRoute, myRoute }) {
   const today = new Date();
   const dow = today.getDay();
   const monday = new Date(today);
@@ -577,6 +577,17 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
           {/* Add permits (own day only) */}
           {isOwn && (
             <div>
+              {/* Import from route */}
+              {myRoute && myRoute.length > 0 && (() => {
+                const importable = myRoute.filter(p => !dayRoute.find(r => r.id === p.id));
+                return importable.length > 0 ? (
+                  <button onClick={() => importable.forEach(p => addToDailyRoute(dateStr, p))} style={{ width: '100%', padding: '11px 16px', borderRadius: 10, background: T.blueLight, border: `1.5px dashed ${T.blue}`, color: T.blue, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    📥 Import my route ({importable.length} builder{importable.length !== 1 ? 's' : ''})
+                  </button>
+                ) : (
+                  <div style={{ fontSize: 12, color: T.textMuted, textAlign: 'center', marginBottom: 14, fontStyle: 'italic' }}>✓ All route builders already added</div>
+                );
+              })()}
               <div style={{ fontSize: 11, fontWeight: 700, color: T.textSub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Add Builders</div>
               <input
                 value={plannerSearch}
@@ -1007,7 +1018,7 @@ function PermitMapInner({ activeUser, onLogout }) {
       )}
 
       {/* Team Full Page */}
-      {teamView && <TeamPage activeUser={activeUser} onClose={() => setTeamView(false)} permits={permits} dailyRoutes={dailyRoutes} addToDailyRoute={addToDailyRoute} removeFromDailyRoute={removeFromDailyRoute} />}
+      {teamView && <TeamPage activeUser={activeUser} onClose={() => setTeamView(false)} permits={permits} dailyRoutes={dailyRoutes} addToDailyRoute={addToDailyRoute} removeFromDailyRoute={removeFromDailyRoute} myRoute={routeList} />}
 
       {/* Team Panel (legacy, unused) */}
       {showTeamPanel && !selected && (() => {
