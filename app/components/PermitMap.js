@@ -37,6 +37,8 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 const NOTES_KEY = (user) => `ist-permit-notes-${user}`;
 const ROUTE_KEY = (user) => `ist-route-list-${user}`;
 const STATUS_KEY = (user) => `ist-permit-status-${user}`;
+const VISIT_LOG_KEY = (user) => `ist-visit-log-${user}`;
+const DAILY_ROUTES_KEY = (user) => `ist-daily-routes-${user}`;
 const SESSION_KEY = 'ist-active-user';
 const SALESMEN = ['Johnny', 'Jordan', 'Skip'];
 
@@ -74,6 +76,31 @@ function loadSession() {
 }
 function saveSession(user) {
   if (typeof window !== 'undefined') localStorage.setItem(SESSION_KEY, user || '');
+}
+function loadVisitLog(user) {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(VISIT_LOG_KEY(user)) || '[]'); } catch { return []; }
+}
+function saveVisitLog(user, log) {
+  if (typeof window !== 'undefined') localStorage.setItem(VISIT_LOG_KEY(user), JSON.stringify(log));
+}
+function logVisit(user, permit, statusKey) {
+  if (!permit || !statusKey || statusKey === 'pass') return;
+  const log = loadVisitLog(user);
+  const today = new Date().toISOString().slice(0, 10);
+  // Update existing entry for this permit today, or add new
+  const existingIdx = log.findIndex(e => e.permitId === String(permit.id) && e.date === today);
+  const entry = { permitId: String(permit.id), builder: permit.builder, address: permit.address, city: permit.city || '', status: statusKey, date: today, ts: Date.now() };
+  if (existingIdx >= 0) log[existingIdx] = entry;
+  else log.unshift(entry);
+  saveVisitLog(user, log.slice(0, 500)); // cap at 500 entries
+}
+function loadDailyRoutes(user) {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem(DAILY_ROUTES_KEY(user)) || '{}'); } catch { return {}; }
+}
+function saveDailyRoutes(user, routes) {
+  if (typeof window !== 'undefined') localStorage.setItem(DAILY_ROUTES_KEY(user), JSON.stringify(routes));
 }
 
 // ─── Intro Animation ──────────────────────────────────────────────────────────
@@ -393,85 +420,207 @@ function addLayers(map, data, onClickPermit) {
 }
 
 // ─── Team Page ────────────────────────────────────────────────────────────────
-function TeamPage({ activeUser, onClose }) {
+function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addToDailyRoute, removeFromDailyRoute }) {
   const today = new Date();
-  const dow = today.getDay(); // 0=Sun
-  // Week starts Monday
+  const dow = today.getDay();
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((dow + 6) % 7));
-
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d;
-  });
-
+  const weekDays = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const todayStr = today.toISOString().slice(0, 10);
+
   const statusColors = { called: '#f59e0b', quoted: '#8b5cf6', won: '#16a34a', route: T.blue, pass: '#9ca3af' };
   const statusLabels = { called: 'Called', quoted: 'Quoted', won: 'Won', route: 'Route', pass: 'Pass' };
+
+  const [profileUser, setProfileUser] = useState(null);
+  const [dayPlanner, setDayPlanner] = useState(null); // { dateStr, name } — whose day we're planning
+  const [plannerSearch, setPlannerSearch] = useState('');
 
   const teamData = SALESMEN.map(name => {
     const statuses = loadStatuses(name);
     const route = loadRoute(name);
-    const notes = loadNotes(name);
-
-    // Group activity by date — statuses/route don't have timestamps, so we show all active items
-    // on "this week" under today's column as a summary; notes have no date either.
-    // We'll show route items and active statuses under the current day column.
+    const visitLog = loadVisitLog(name);
     const activeStatuses = Object.entries(statuses).filter(([, s]) => s !== 'pass');
     const passStatuses = Object.entries(statuses).filter(([, s]) => s === 'pass');
-
-    return { name, statuses, route, notes, activeStatuses, passStatuses };
+    return { name, statuses, route, visitLog, activeStatuses, passStatuses };
   });
 
-  // Build overlap map
+  // Overlap detection
   const builderMap = {};
   teamData.forEach(({ name, statuses, route }) => {
     Object.entries(statuses).forEach(([id, status]) => {
       if (status === 'pass') return;
-      const permit = PERMITS.find(p => String(p.id) === String(id));
-      if (!permit) return;
-      const key = permit.builder.toLowerCase().trim();
+      const p = PERMITS.find(p => String(p.id) === String(id)); if (!p) return;
+      const key = p.builder.toLowerCase().trim();
       if (!builderMap[key]) builderMap[key] = [];
-      builderMap[key].push({ user: name, permitId: id, address: permit.address, status, builder: permit.builder });
+      builderMap[key].push({ user: name, permitId: id, address: p.address, status, builder: p.builder });
     });
-    route.forEach(permit => {
-      const key = permit.builder.toLowerCase().trim();
+    route.forEach(p => {
+      const key = p.builder.toLowerCase().trim();
       if (!builderMap[key]) builderMap[key] = [];
-      if (!builderMap[key].find(e => e.user === name && e.permitId === String(permit.id)))
-        builderMap[key].push({ user: name, permitId: String(permit.id), address: permit.address, status: 'route', builder: permit.builder });
+      if (!builderMap[key].find(e => e.user === name && e.permitId === String(p.id)))
+        builderMap[key].push({ user: name, permitId: String(p.id), address: p.address, status: 'route', builder: p.builder });
     });
   });
   const conflicts = Object.entries(builderMap).filter(([, entries]) => [...new Set(entries.map(e => e.user))].length > 1);
 
-  const todayStr = today.toISOString().slice(0, 10);
+  // ── Profile Page ──────────────────────────────────────────────────────────
+  if (profileUser) {
+    const d = teamData.find(t => t.name === profileUser);
+    const visitLog = loadVisitLog(profileUser);
+    const totalVisited = d.activeStatuses.length;
+    const byStatus = { called: 0, quoted: 0, won: 0 };
+    d.activeStatuses.forEach(([, s]) => { if (byStatus[s] !== undefined) byStatus[s]++; });
 
+    return (
+      <div style={{ position: 'absolute', inset: 0, zIndex: 60, background: T.bg, display: 'flex', flexDirection: 'column', paddingTop: 'env(safe-area-inset-top,0px)', paddingBottom: 'env(safe-area-inset-bottom,0px)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px 10px', borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
+          <button onClick={() => setProfileUser(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: T.text, padding: '0 4px', fontFamily: 'inherit' }}>←</button>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: profileUser === activeUser ? T.blue : T.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: profileUser === activeUser ? '#fff' : T.textSub }}>{profileUser[0]}</div>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: T.text }}>{profileUser} {profileUser === activeUser && <span style={{ fontSize: 11, color: T.blue }}>(you)</span>}</div>
+            <div style={{ fontSize: 11, color: T.textMuted }}>Salesman Profile</div>
+          </div>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px 24px' }}>
+          {/* Stat cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 18 }}>
+            {[
+              { label: 'Visited', value: totalVisited, color: T.blue },
+              { label: 'Called', value: byStatus.called, color: '#f59e0b' },
+              { label: 'Quoted', value: byStatus.quoted, color: '#8b5cf6' },
+              { label: 'Won', value: byStatus.won, color: '#16a34a' },
+            ].map(s => (
+              <div key={s.label} style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 12, padding: '12px 8px', textAlign: 'center', boxShadow: T.shadow }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
+            <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 12, padding: '12px 8px', textAlign: 'center', boxShadow: T.shadow }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#9ca3af' }}>{d.passStatuses.length}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Passed</div>
+            </div>
+            <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 12, padding: '12px 8px', textAlign: 'center', boxShadow: T.shadow }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: T.text }}>{d.route.length}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>On Route</div>
+            </div>
+          </div>
+
+          {/* Visit history */}
+          <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 10 }}>📋 Visit History</div>
+          {visitLog.length === 0 ? (
+            <div style={{ fontSize: 13, color: T.textMuted, fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>No logged visits yet — statuses set going forward will appear here.</div>
+          ) : (
+            visitLog.map((entry, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: `1px solid ${T.cardBorder}` }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{entry.builder}</div>
+                  <div style={{ fontSize: 11, color: T.textMuted }}>{entry.address?.split(',')[0]} {entry.city ? `· ${entry.city}` : ''}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: statusColors[entry.status], background: `${statusColors[entry.status]}18`, padding: '2px 8px', borderRadius: 5, display: 'block', marginBottom: 3 }}>{statusLabels[entry.status]}</span>
+                  <span style={{ fontSize: 10, color: T.textMuted }}>{entry.date}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Day Planner ──────────────────────────────────────────────────────────
+  if (dayPlanner) {
+    const { dateStr, name } = dayPlanner;
+    const dayRoute = (dailyRoutes[dateStr] || []);
+    const isOwn = name === activeUser;
+    const d = new Date(dateStr + 'T12:00:00');
+    const dayLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    const filteredPermits = PERMITS.filter(p => {
+      if (!plannerSearch.trim()) return true;
+      const q = plannerSearch.toLowerCase();
+      return (p.builder || '').toLowerCase().includes(q) || (p.address || '').toLowerCase().includes(q) || (p.city || '').toLowerCase().includes(q);
+    }).slice(0, 30);
+
+    return (
+      <div style={{ position: 'absolute', inset: 0, zIndex: 60, background: T.bg, display: 'flex', flexDirection: 'column', paddingTop: 'env(safe-area-inset-top,0px)', paddingBottom: 'env(safe-area-inset-bottom,0px)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px 10px', borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
+          <button onClick={() => { setDayPlanner(null); setPlannerSearch(''); }} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: T.text, padding: '0 4px', fontFamily: 'inherit' }}>←</button>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>🗓 {name}'s Route</div>
+            <div style={{ fontSize: 11, color: T.textMuted }}>{dayLabel}</div>
+          </div>
+          <div style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 700, color: T.blue }}>{dayRoute.length} stop{dayRoute.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 24px' }}>
+          {/* Planned stops */}
+          {dayRoute.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.blue, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Planned Stops</div>
+              {dayRoute.map((p, idx) => (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: `1px solid ${T.cardBorder}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 20, height: 20, borderRadius: '50%', background: T.blue, color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{idx + 1}</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{p.builder}</div>
+                      <div style={{ fontSize: 11, color: T.textMuted }}>{p.address?.split(',')[0]}{p.city ? ` · ${p.city}` : ''}</div>
+                    </div>
+                  </div>
+                  {isOwn && <button onClick={() => removeFromDailyRoute(dateStr, p.id)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#dc2626', padding: '4px 6px' }}>✕</button>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add permits (own day only) */}
+          {isOwn && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.textSub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Add Builders</div>
+              <input
+                value={plannerSearch}
+                onChange={e => setPlannerSearch(e.target.value)}
+                placeholder="Search by name, address, city..."
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: `1px solid ${T.cardBorder}`, fontSize: 14, fontFamily: 'inherit', background: T.card, color: T.text, boxSizing: 'border-box', marginBottom: 10, outline: 'none' }}
+              />
+              {filteredPermits.map(p => {
+                const already = dayRoute.find(r => r.id === p.id);
+                return (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: `1px solid ${T.cardBorder}`, opacity: already ? 0.4 : 1 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{p.builder}</div>
+                      <div style={{ fontSize: 11, color: T.textMuted }}>{p.address?.split(',')[0]}{p.city ? ` · ${p.city}` : ''}</div>
+                    </div>
+                    <button onClick={() => { if (!already) addToDailyRoute(dateStr, p); }} disabled={!!already} style={{ padding: '6px 14px', borderRadius: 8, background: already ? T.bg : T.blue, color: already ? T.textMuted : '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: already ? 'default' : 'pointer', fontFamily: 'inherit' }}>{already ? '✓' : '+ Add'}</button>
+                  </div>
+                );
+              })}
+              {filteredPermits.length === 0 && <div style={{ fontSize: 13, color: T.textMuted, fontStyle: 'italic', textAlign: 'center', padding: '12px 0' }}>No results</div>}
+            </div>
+          )}
+          {!isOwn && dayRoute.length === 0 && <div style={{ fontSize: 13, color: T.textMuted, fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>No stops planned for this day.</div>}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main Team View ────────────────────────────────────────────────────────
   return (
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: 50,
-      background: T.bg, display: 'flex', flexDirection: 'column',
-      paddingTop: 'env(safe-area-inset-top, 0px)',
-      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-    }}>
-      {/* Header */}
+    <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: T.bg, display: 'flex', flexDirection: 'column', paddingTop: 'env(safe-area-inset-top,0px)', paddingBottom: 'env(safe-area-inset-bottom,0px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px 10px', borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
         <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: T.text, padding: '0 4px', fontFamily: 'inherit' }}>←</button>
         <div>
           <div style={{ fontSize: 17, fontWeight: 800, color: T.text }}>👥 Team</div>
-          <div style={{ fontSize: 11, color: T.textMuted }}>
-            Week of {monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          </div>
+          <div style={{ fontSize: 11, color: T.textMuted }}>Week of {monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
         </div>
         {conflicts.length > 0 && (
-          <div style={{ marginLeft: 'auto', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#dc2626' }}>
-            ⚠️ {conflicts.length} overlap{conflicts.length > 1 ? 's' : ''}
-          </div>
+          <div style={{ marginLeft: 'auto', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#dc2626' }}>⚠️ {conflicts.length} overlap{conflicts.length > 1 ? 's' : ''}</div>
         )}
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 24px' }}>
-
-        {/* Overlaps section */}
+        {/* Overlaps */}
         {conflicts.length > 0 && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 8 }}>⚠️ OVERLAPPING BUILDERS</div>
@@ -486,9 +635,7 @@ function TeamPage({ activeUser, onClose }) {
                     <div key={user} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: T.blue, minWidth: 52 }}>{user}</span>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {items.map((e, i) => (
-                          <span key={i} style={{ fontSize: 10, fontWeight: 700, color: statusColors[e.status] || T.textSub, background: `${(statusColors[e.status] || '#ccc')}22`, padding: '2px 6px', borderRadius: 4 }}>{statusLabels[e.status] || e.status}</span>
-                        ))}
+                        {items.map((e, i) => <span key={i} style={{ fontSize: 10, fontWeight: 700, color: statusColors[e.status] || T.textSub, background: `${(statusColors[e.status] || '#ccc')}22`, padding: '2px 6px', borderRadius: 4 }}>{statusLabels[e.status] || e.status}</span>)}
                       </div>
                     </div>
                   ))}
@@ -498,75 +645,59 @@ function TeamPage({ activeUser, onClose }) {
           </div>
         )}
 
-        {/* Per-salesman calendar week */}
+        {/* Per-salesman cards */}
         {teamData.map(({ name, route, activeStatuses, passStatuses }) => (
           <div key={name} style={{ marginBottom: 20, background: T.card, borderRadius: 14, border: `1px solid ${T.cardBorder}`, overflow: 'hidden', boxShadow: T.shadow }}>
-            {/* Salesman header */}
-            <div style={{ padding: '12px 14px', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', alignItems: 'center', gap: 8, background: name === activeUser ? T.blueLight : T.card }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: name === activeUser ? T.blue : T.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: name === activeUser ? '#fff' : T.textSub }}>
-                {name[0]}
-              </div>
-              <div>
+            {/* Salesman header — tappable → profile */}
+            <button onClick={() => setProfileUser(name)} style={{ width: '100%', padding: '12px 14px', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', alignItems: 'center', gap: 10, background: name === activeUser ? T.blueLight : T.card, border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: name === activeUser ? T.blue : T.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, color: name === activeUser ? '#fff' : T.textSub, flexShrink: 0 }}>{name[0]}</div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: name === activeUser ? T.blue : T.text }}>{name} {name === activeUser && <span style={{ fontSize: 10, fontWeight: 600 }}>(you)</span>}</div>
-                <div style={{ fontSize: 11, color: T.textMuted }}>{route.length} on route · {activeStatuses.length} active · {passStatuses.length} passed</div>
+                <div style={{ fontSize: 11, color: T.textMuted }}>{route.length} route · {activeStatuses.length} active · {passStatuses.length} passed</div>
               </div>
-            </div>
+              <span style={{ fontSize: 16, color: T.textMuted }}>›</span>
+            </button>
 
-            {/* Calendar week strip */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: `1px solid ${T.cardBorder}` }}>
+            {/* Weekly calendar strip — each day tappable */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
               {weekDays.map((d, i) => {
                 const ds = d.toISOString().slice(0, 10);
                 const isToday = ds === todayStr;
+                const dayStops = (dailyRoutes[ds] || []);
+                const isOwn = name === activeUser;
                 return (
-                  <div key={i} style={{ textAlign: 'center', padding: '8px 2px', background: isToday ? T.blueLight : 'transparent', borderRight: i < 6 ? `1px solid ${T.cardBorder}` : 'none' }}>
+                  <button key={i} onClick={() => setDayPlanner({ dateStr: ds, name })} style={{ padding: '8px 2px', background: isToday ? T.blueLight : 'transparent', borderRight: i < 6 ? `1px solid ${T.cardBorder}` : 'none', borderBottom: 'none', borderTop: `1px solid ${T.cardBorder}`, borderLeft: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' }}>
                     <div style={{ fontSize: 9, fontWeight: 700, color: isToday ? T.blue : T.textMuted, textTransform: 'uppercase' }}>{DAY_LABELS[i]}</div>
-                    <div style={{ fontSize: 14, fontWeight: isToday ? 800 : 500, color: isToday ? T.blue : T.text, marginTop: 2 }}>{d.getDate()}</div>
-                    {isToday && (
-                      <div style={{ marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2, padding: '0 2px' }}>
-                        {route.length > 0 && <div style={{ fontSize: 8, fontWeight: 700, background: `${T.blue}22`, color: T.blue, borderRadius: 3, padding: '1px 3px' }}>{route.length} route</div>}
-                        {activeStatuses.length > 0 && <div style={{ fontSize: 8, fontWeight: 700, background: '#f59e0b22', color: '#d97706', borderRadius: 3, padding: '1px 3px' }}>{activeStatuses.length} active</div>}
-                      </div>
+                    <div style={{ fontSize: 14, fontWeight: isToday ? 800 : 500, color: isToday ? T.blue : T.text, marginTop: 1 }}>{d.getDate()}</div>
+                    {dayStops.length > 0 && (
+                      <div style={{ marginTop: 3, fontSize: 9, fontWeight: 700, background: `${T.blue}22`, color: T.blue, borderRadius: 3, padding: '1px 3px' }}>{dayStops.length}</div>
                     )}
-                  </div>
+                    {isOwn && isToday && dayStops.length === 0 && (
+                      <div style={{ marginTop: 3, fontSize: 10, color: T.textMuted }}>+</div>
+                    )}
+                  </button>
                 );
               })}
             </div>
 
-            {/* Activity detail */}
-            <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {route.length === 0 && activeStatuses.length === 0 ? (
-                <div style={{ fontSize: 12, color: T.textMuted, fontStyle: 'italic', textAlign: 'center', padding: '8px 0' }}>No activity this week</div>
-              ) : (
-                <>
-                  {route.length > 0 && (
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: T.blue, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>🗺 Route ({route.length})</div>
-                      {route.map(p => (
-                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: `1px solid ${T.cardBorder}` }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{p.builder}</span>
-                          <span style={{ fontSize: 11, color: T.textMuted }}>{p.address?.split(',')[0]}</span>
-                        </div>
-                      ))}
+            {/* Active statuses summary */}
+            {activeStatuses.length > 0 && (
+              <div style={{ padding: '10px 14px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: T.textSub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>📋 Active ({activeStatuses.length})</div>
+                {activeStatuses.slice(0, 5).map(([id, status]) => {
+                  const permit = PERMITS.find(p => String(p.id) === String(id));
+                  if (!permit) return null;
+                  return (
+                    <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: `1px solid ${T.cardBorder}` }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>{permit.builder}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: statusColors[status], background: `${statusColors[status]}18`, padding: '2px 7px', borderRadius: 5 }}>{statusLabels[status]}</span>
                     </div>
-                  )}
-                  {activeStatuses.length > 0 && (
-                    <div style={{ marginTop: route.length > 0 ? 10 : 0 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: T.textSub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>📋 Working ({activeStatuses.length})</div>
-                      {activeStatuses.map(([id, status]) => {
-                        const permit = PERMITS.find(p => String(p.id) === String(id));
-                        if (!permit) return null;
-                        return (
-                          <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: `1px solid ${T.cardBorder}` }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{permit.builder}</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: statusColors[status], background: `${statusColors[status]}18`, padding: '2px 8px', borderRadius: 5 }}>{statusLabels[status]}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                  );
+                })}
+                {activeStatuses.length > 5 && <div style={{ fontSize: 11, color: T.textMuted, textAlign: 'center', marginTop: 6 }}>+{activeStatuses.length - 5} more — tap name to see all</div>}
+              </div>
+            )}
+            {activeStatuses.length === 0 && <div style={{ padding: '12px 14px', fontSize: 12, color: T.textMuted, fontStyle: 'italic' }}>No active builders yet.</div>}
           </div>
         ))}
       </div>
@@ -601,6 +732,7 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [showRoutePanel, setShowRoutePanel] = useState(false);
   const [showTeamPanel, setShowTeamPanel] = useState(false);
   const [teamView, setTeamView] = useState(false);
+  const [dailyRoutes, setDailyRoutes] = useState(() => loadDailyRoutes(activeUser));
   const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
 
   const isMobile = useRef(false);
@@ -634,10 +766,29 @@ function PermitMapInner({ activeUser, onLogout }) {
     saveNotes(activeUser, updated);
   }, [notes, activeUser]);
 
-  const setStatus = useCallback((id, statusKey) => {
+  const setStatus = useCallback((id, statusKey, permit) => {
     setStatuses(prev => {
       const updated = statusKey ? { ...prev, [id]: statusKey } : Object.fromEntries(Object.entries(prev).filter(([k]) => k !== id));
       saveStatuses(activeUser, updated);
+      return updated;
+    });
+    if (permit && statusKey && statusKey !== 'pass') logVisit(activeUser, permit, statusKey);
+  }, [activeUser]);
+
+  const addToDailyRoute = useCallback((dateStr, permit) => {
+    setDailyRoutes(prev => {
+      const day = prev[dateStr] || [];
+      if (day.find(p => p.id === permit.id)) return prev;
+      const updated = { ...prev, [dateStr]: [...day, permit] };
+      saveDailyRoutes(activeUser, updated);
+      return updated;
+    });
+  }, [activeUser]);
+
+  const removeFromDailyRoute = useCallback((dateStr, permitId) => {
+    setDailyRoutes(prev => {
+      const updated = { ...prev, [dateStr]: (prev[dateStr] || []).filter(p => p.id !== permitId) };
+      saveDailyRoutes(activeUser, updated);
       return updated;
     });
   }, [activeUser]);
@@ -856,7 +1007,7 @@ function PermitMapInner({ activeUser, onLogout }) {
       )}
 
       {/* Team Full Page */}
-      {teamView && <TeamPage activeUser={activeUser} onClose={() => setTeamView(false)} />}
+      {teamView && <TeamPage activeUser={activeUser} onClose={() => setTeamView(false)} permits={permits} dailyRoutes={dailyRoutes} addToDailyRoute={addToDailyRoute} removeFromDailyRoute={removeFromDailyRoute} />}
 
       {/* Team Panel (legacy, unused) */}
       {showTeamPanel && !selected && (() => {
@@ -1212,7 +1363,7 @@ function PermitMapInner({ activeUser, onLogout }) {
               {STATUSES.map(s => {
                 const active = statuses[selected.id] === s.key;
                 return (
-                  <button key={s.key} onClick={() => setStatus(selected.id, active ? null : s.key)} style={{
+                  <button key={s.key} onClick={() => setStatus(selected.id, active ? null : s.key, selected)} style={{
                     padding: '8px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700,
                     cursor: 'pointer', fontFamily: 'inherit',
                     background: active ? s.color : T.bg,
