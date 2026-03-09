@@ -421,6 +421,12 @@ function addLayers(map, data, onClickPermit) {
 
 // ─── Team Page ────────────────────────────────────────────────────────────────
 function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addToDailyRoute, removeFromDailyRoute, myRoute }) {
+  // Load each salesman's daily routes independently from their own localStorage key
+  const allDailyRoutes = useMemo(() => {
+    const result = {};
+    SALESMEN.forEach(name => { result[name] = loadDailyRoutes(name); });
+    return result;
+  }, []);
   const today = new Date();
   const dow = today.getDay();
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -536,7 +542,7 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
   // ── Day Planner ──────────────────────────────────────────────────────────
   if (dayPlanner) {
     const { dateStr, name } = dayPlanner;
-    const dayRoute = (dailyRoutes[dateStr] || []);
+    const dayRoute = ((allDailyRoutes[name] || {})[dateStr] || []);
     const isOwn = name === activeUser;
     const d = new Date(dateStr + 'T12:00:00');
     const dayLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
@@ -684,7 +690,7 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
               {weekDays.map((d, i) => {
                 const ds = d.toISOString().slice(0, 10);
                 const isToday = ds === todayStr;
-                const dayStops = (dailyRoutes[ds] || []);
+                const dayStops = ((allDailyRoutes[name] || {})[ds] || []);
                 const isOwn = name === activeUser;
                 return (
                   <button key={i} onClick={() => setDayPlanner({ dateStr: ds, name })} style={{ padding: '8px 2px', background: isToday ? T.blueLight : 'transparent', borderRight: i < 6 ? `1px solid ${T.cardBorder}` : 'none', borderBottom: 'none', borderTop: `1px solid ${T.cardBorder}`, borderLeft: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' }}>
