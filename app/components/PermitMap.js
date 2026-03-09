@@ -423,9 +423,6 @@ function addLayers(map, data, onClickPermit) {
 function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addToDailyRoute, removeFromDailyRoute, myRoute }) {
   const today = new Date();
   const dow = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - ((dow + 6) % 7));
-  const weekDays = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const todayStr = today.toISOString().slice(0, 10);
 
@@ -435,6 +432,11 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
   const [profileUser, setProfileUser] = useState(null);
   const [dayPlanner, setDayPlanner] = useState(null); // { dateStr, name } — whose day we're planning
   const [plannerSearch, setPlannerSearch] = useState('');
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, 1 = next, -1 = last
+
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((dow + 6) % 7) + weekOffset * 7);
+  const weekDays = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
 
   const teamData = SALESMEN.map(name => {
     const statuses = loadStatuses(name);
@@ -619,14 +621,22 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
   // ── Main Team View ────────────────────────────────────────────────────────
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: T.bg, display: 'flex', flexDirection: 'column', paddingTop: 'env(safe-area-inset-top,0px)', paddingBottom: 'env(safe-area-inset-bottom,0px)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px 10px', borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 10px', borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
         <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: T.text, padding: '0 4px', fontFamily: 'inherit' }}>←</button>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ fontSize: 17, fontWeight: 800, color: T.text }}>👥 Team</div>
-          <div style={{ fontSize: 11, color: T.textMuted }}>Week of {monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <button onClick={() => setWeekOffset(w => w - 1)} style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: T.textMuted, padding: '0 2px', fontFamily: 'inherit', lineHeight: 1 }}>‹</button>
+            <span style={{ fontSize: 11, color: weekOffset === 0 ? T.blue : T.textMuted, fontWeight: weekOffset === 0 ? 700 : 400 }}>
+              {weekOffset === 0 ? 'This week' : weekOffset === 1 ? 'Next week' : weekOffset === -1 ? 'Last week' : `${weekOffset > 0 ? '+' : ''}${weekOffset}w`}
+              {' · '}{monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
+            <button onClick={() => setWeekOffset(w => w + 1)} style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: T.textMuted, padding: '0 2px', fontFamily: 'inherit', lineHeight: 1 }}>›</button>
+            {weekOffset !== 0 && <button onClick={() => setWeekOffset(0)} style={{ fontSize: 10, color: T.blue, background: T.blueLight, border: 'none', borderRadius: 5, padding: '2px 7px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>Today</button>}
+          </div>
         </div>
         {conflicts.length > 0 && (
-          <div style={{ marginLeft: 'auto', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#dc2626' }}>⚠️ {conflicts.length} overlap{conflicts.length > 1 ? 's' : ''}</div>
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#dc2626', flexShrink: 0 }}>⚠️ {conflicts.length}</div>
         )}
       </div>
 
