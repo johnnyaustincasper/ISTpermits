@@ -560,7 +560,26 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
             <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>🗓 {name}'s Route</div>
             <div style={{ fontSize: 11, color: T.textMuted }}>{dayLabel}</div>
           </div>
-          <div style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 700, color: T.blue }}>{dayRoute.length} stop{dayRoute.length !== 1 ? 's' : ''}</div>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.blue }}>{dayRoute.length} stop{dayRoute.length !== 1 ? 's' : ''}</div>
+            {dayRoute.length > 0 && (() => {
+              // Build Apple Maps multi-stop directions URL
+              const stops = dayRoute.map(p => encodeURIComponent((p.address || '') + (p.city ? ', ' + p.city + ', OK' : ', OK')));
+              let mapsUrl;
+              if (stops.length === 1) {
+                mapsUrl = `maps://?daddr=${stops[0]}&dirflg=d`;
+              } else {
+                // Apple Maps multi-stop: daddr=stop1+to:stop2+to:stop3
+                const chain = stops.join('+to:');
+                mapsUrl = `maps://?daddr=${chain}&dirflg=d`;
+              }
+              return (
+                <a href={mapsUrl} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 9, background: T.blue, color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                  🗺 Map Route
+                </a>
+              );
+            })()}
+          </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 24px' }}>
           {/* Planned stops */}
