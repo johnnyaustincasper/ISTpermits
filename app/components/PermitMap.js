@@ -257,24 +257,42 @@ function LoginScreen({ onLogin }) {
     step === 'confirm' ? 'Enter your PIN one more time' : 'Enter your PIN';
 
   return (
-    <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 'max(60px, env(safe-area-inset-top, 0px) + 40px)', padding: '0 24px 40px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
+    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
+      <style>{`
+        @keyframes kenburns {
+          0%   { transform: scale(1.0) translate(0%,0%); }
+          50%  { transform: scale(1.12) translate(-2%,-1%); }
+          100% { transform: scale(1.0) translate(0%,0%); }
+        }
+        @keyframes authFadeIn {
+          from { opacity:0; transform:translateY(16px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+        .kb-img { position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;animation:kenburns 20s ease-in-out infinite;transform-origin:center center; }
+        .kb-overlay { position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.35) 50%,rgba(0,0,0,0.65) 100%); }
+        .kb-content { animation:authFadeIn 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+        .kb-card { background:rgba(255,255,255,0.1)!important;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.2)!important;box-shadow:0 4px 24px rgba(0,0,0,0.3)!important;transition:background 0.2s,transform 0.2s!important; }
+        .kb-card:hover { background:rgba(255,255,255,0.18)!important;transform:translateY(-2px); }
+      `}</style>
+      <img className="kb-img" src="/tulsa.jpg" alt="" />
+      <div className="kb-overlay" />
+      <div className="kb-content" style={{ position:'relative', zIndex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'20px 24px 40px' }}>
       <div style={{ width: '100%', maxWidth: 360 }}>
-        <div style={{ textAlign: 'center', marginBottom: 28, marginTop: 'max(60px, env(safe-area-inset-top, 0px) + 40px)' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 }}>Insulation Services of Tulsa</div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: T.text, letterSpacing: 1 }}>IST Permits</div>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 }}>Insulation Services of Tulsa</div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', letterSpacing: 1 }}>IST Permits</div>
+          <div style={{ width: 40, height: 2, background: T.blue, margin: '12px auto 0', borderRadius: 1 }} />
         </div>
 
-        <div style={{ fontSize: 22, fontWeight: 700, color: T.text, textAlign: 'center', marginBottom: 6 }}>{title}</div>
-        <div style={{ fontSize: 14, color: T.textSub, textAlign: 'center', marginBottom: 32 }}>{subtitle}</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', textAlign: 'center', marginBottom: 6 }}>{title}</div>
+        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', textAlign: 'center', marginBottom: 32 }}>{subtitle}</div>
 
         {step === 'pick' && !checking && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {SALESMEN.map(name => (
-              <button key={name} onClick={() => handleSelectUser(name)} style={{
+              <button key={name} onClick={() => handleSelectUser(name)} className="kb-card" style={{
                 padding: '18px 24px', borderRadius: 14, fontSize: 20, fontWeight: 700,
-                background: '#fff', border: `2px solid ${T.cardBorder}`, color: T.text,
-                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                color: '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', border: 'none', width: '100%',
               }}>{name}</button>
             ))}
           </div>
@@ -307,9 +325,9 @@ function LoginScreen({ onLogin }) {
                     disabled={checking}
                     style={{
                       padding: '20px 0', borderRadius: 14, fontSize: d === '⌫' ? 22 : 24, fontWeight: 600,
-                      background: '#fff', border: `1.5px solid ${T.cardBorder}`, color: T.text,
+                      background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff',
                       cursor: checking ? 'default' : 'pointer', fontFamily: 'inherit',
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      backdropFilter: 'blur(8px)',
                       WebkitTapHighlightColor: 'transparent',
                       opacity: checking ? 0.5 : 1,
                     }}>{d}</button>
@@ -319,10 +337,11 @@ function LoginScreen({ onLogin }) {
 
             <button onClick={() => { setStep('pick'); setPin(''); setSetupPin(''); setError(''); }} style={{
               width: '100%', padding: '12px', background: 'none', border: 'none',
-              color: T.textSub, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+              color: 'rgba(255,255,255,0.55)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
             }}>← Back</button>
           </>
         )}
+      </div>
       </div>
     </div>
   );
