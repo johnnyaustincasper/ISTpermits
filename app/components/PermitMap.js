@@ -1259,129 +1259,112 @@ function PermitMapInner({ activeUser, onLogout }) {
             position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
             background: T.card, borderTop: `1px solid ${T.cardBorder}`,
             borderRadius: '20px 20px 0 0',
-            padding: '18px 18px',
-            paddingBottom: 'max(28px, env(safe-area-inset-bottom, 28px))',
+            padding: '14px 16px',
+            paddingBottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
             boxShadow: T.shadowLg,
-            maxHeight: '60vh', overflowY: 'auto',
+            maxHeight: '35vh', overflowY: 'auto',
           }}>
           {/* Drag handle */}
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 14px' }} />
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 10px' }} />
 
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+          {/* Header — compact */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: T.text, lineHeight: 1.2 }}>{selected.builder}</div>
-              <div style={{ fontSize: 14, color: T.textSub, marginTop: 4 }}>
-                {selected.address} · {selected.city}{selected.subdivision ? ` · ${selected.subdivision}` : ''}
+              <div style={{ fontSize: 16, fontWeight: 800, color: T.text, lineHeight: 1.1 }}>{selected.builder}</div>
+              <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>
+                {selected.address}
               </div>
             </div>
-            <button onClick={closeDetail} style={{ ...ghostBtn, marginLeft: 12, flexShrink: 0 }}>✕</button>
+            <button onClick={closeDetail} style={{ ...ghostBtn, marginLeft: 8, flexShrink: 0, padding: '4px 8px' }}>✕</button>
           </div>
 
-          {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
+          {/* Stats — compact */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 8 }}>
             {[
               { l: 'Value', v: Number(selected.value) > 0 ? fmt(Number(selected.value)) : 'N/A' },
               { l: 'Sq Ft', v: Number(selected.sqft) > 0 ? Number(selected.sqft).toLocaleString() : 'N/A' },
-              { l: 'Week', v: selected.week || 'N/A' },
             ].map(f => (
-              <div key={f.l} style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
-                <div style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>{f.l}</div>
-                <div style={{ fontSize: 15, color: T.text, fontWeight: 700 }}>{f.v}</div>
+              <div key={f.l} style={{ background: T.bg, borderRadius: 8, padding: '8px 10px' }}>
+                <div style={{ fontSize: 10, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 }}>{f.l}</div>
+                <div style={{ fontSize: 13, color: T.text, fontWeight: 700 }}>{f.v}</div>
               </div>
             ))}
           </div>
 
-          {/* Contact */}
-          {selected.contact && (
-            <div style={{ fontSize: 14, color: T.textSub, marginBottom: 10 }}>
-              Contact: <span style={{ color: T.text, fontWeight: 600 }}>{selected.contact}</span>
-            </div>
-          )}
-
           {/* Phone — tap to call */}
           {selected.phone && selected.phone !== 'N/A' && (
             <a href={`tel:${selected.phone.replace(/\D/g,'')}`} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              width: '100%', padding: '14px 0', borderRadius: 12, marginBottom: 10,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              width: '100%', padding: '10px 0', borderRadius: 10, marginBottom: 8,
               background: T.greenLight, border: `1.5px solid ${T.greenBorder}`,
-              color: T.green, fontSize: 17, fontWeight: 800, textDecoration: 'none',
+              color: T.green, fontSize: 13, fontWeight: 700, textDecoration: 'none',
             }}>
-              📞 Call {selected.phone}
+              📞 {selected.phone}
             </a>
           )}
 
           {/* Action buttons */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 0 }}>
             <a href={`maps://maps.apple.com/?q=${encodeURIComponent(selected.address + ', ' + selected.city + ', OK')}&ll=${selected.lat},${selected.lng}`}
               target="_blank" rel="noopener noreferrer" style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                padding: '13px 0', borderRadius: 12,
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                padding: '10px 0', borderRadius: 10,
                 background: T.blueLight, border: `1.5px solid ${T.blueBorder}`,
-                color: T.blue, fontSize: 15, fontWeight: 700, textDecoration: 'none',
+                color: T.blue, fontSize: 13, fontWeight: 700, textDecoration: 'none',
               }}>
               📍 Maps
             </a>
             <button onClick={() => addToRoute(selected)} style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '13px 0', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              padding: '10px 0', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
               background: isInRoute ? T.blueLight : T.bg,
               border: isInRoute ? `1.5px solid ${T.blueBorder}` : `1px solid ${T.cardBorder}`,
               color: isInRoute ? T.blue : T.textSub,
-              fontSize: 15, fontWeight: 700,
+              fontSize: 13, fontWeight: 700,
             }}>
               {isInRoute ? '✓ Added' : '＋ Route'}
             </button>
             <button onClick={() => { setSelectedPermit(selected); setShowVisitModal(true); }} style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '13px 0', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              padding: '10px 0', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
               background: T.blueLight,
-              border: `1px solid ${T.blueBorder}`,
+              border: `1.5px solid ${T.blueBorder}`,
               color: T.blue,
-              fontSize: 15, fontWeight: 700,
+              fontSize: 13, fontWeight: 700,
             }}>
-              📝 Visit Log
+              📝 Visit
             </button>
           </div>
 
-          {/* Map Route button — visible when stops are queued */}
-          {routeList.length > 0 && (
-            <button onClick={() => { closeDetail(); openAppleMapsRoute(); }} style={{
-              width: '100%', padding: '14px 0', borderRadius: 12, cursor: 'pointer',
-              background: T.blue, border: 'none', color: '#fff',
-              fontSize: 16, fontWeight: 800, fontFamily: 'inherit', marginBottom: 10,
-            }}>
-              🗺 Map Route ({routeList.length} stop{routeList.length !== 1 ? 's' : ''})
-            </button>
-          )}
+          {/* Map Route button — hidden in compact view */}
 
-          {/* Notes */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Notes</div>
+          {/* Notes — collapsed in compact view */}
+          <details style={{ marginBottom: 8 }}>
+            <summary style={{ fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, cursor: 'pointer' }}>Notes</summary>
             <textarea
               value={noteText || notes[selected.id] || ''}
               onChange={e => setNoteText(e.target.value)}
               onBlur={e => saveNote(selected.id, e.target.value)}
-              placeholder="Add a note (saved automatically)…"
-              rows={3}
+              placeholder="Add a note…"
+              rows={2}
               style={{
-                width: '100%', padding: '10px 12px', borderRadius: 10,
+                width: '100%', marginTop: 6, padding: '8px 10px', borderRadius: 8,
                 border: `1px solid ${T.cardBorder}`, background: T.bg,
-                color: T.text, fontSize: 14, fontFamily: 'inherit', resize: 'none',
+                color: T.text, fontSize: 12, fontFamily: 'inherit', resize: 'none',
                 outline: 'none', boxSizing: 'border-box',
               }}
             />
-          </div>
+          </details>
 
-          {/* Status tags */}
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Status</div>
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          {/* Status tags — collapsed */}
+          <details style={{ marginBottom: 8 }}>
+            <summary style={{ fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, cursor: 'pointer' }}>Status</summary>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
               {STATUSES.map(s => {
                 const active = statuses[selected.id] === s.key;
                 return (
                   <button key={s.key} onClick={() => setStatus(selected.id, active ? null : s.key, selected)} style={{
-                    padding: '8px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700,
+                    padding: '6px 12px', borderRadius: 16, fontSize: 12, fontWeight: 700,
                     cursor: 'pointer', fontFamily: 'inherit',
                     background: active ? s.color : T.bg,
                     border: active ? `1.5px solid ${s.color}` : `1px solid ${T.cardBorder}`,
@@ -1391,17 +1374,9 @@ function PermitMapInner({ activeUser, onLogout }) {
                 );
               })}
             </div>
-          </div>
+          </details>
 
-          {/* Builder type badge */}
-          <div style={{
-            display: 'inline-block', padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-            background: selected.production ? T.orangeLight : T.blueLight,
-            color: selected.production ? T.orange : T.blue,
-            border: `1px solid ${selected.production ? '#fed7aa' : T.blueBorder}`,
-          }}>
-            {selected.production ? 'Production Builder' : (Number(selected.value) >= 500000 ? '★ Premium Custom Lead' : '★ Indie Builder Lead')}
-          </div>
+          {/* Builder type badge — hidden in compact view */}
         </div>
       )}
 

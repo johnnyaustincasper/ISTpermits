@@ -17,8 +17,8 @@ export default function SearchPanel({ searchQuery, onSearchChange, filteredCount
     <div
       style={{
         position: 'absolute',
-        top: 80,
-        left: 16,
+        top: 16,
+        right: 16,
         background: T.card,
         borderRadius: 10,
         padding: '12px 14px',
