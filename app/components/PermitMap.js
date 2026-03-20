@@ -1441,7 +1441,67 @@ function PermitMapInner({ activeUser, onLogout }) {
         </div>
       )}
 
-      {/* Search Panel */}
+      {/* Active Builder Filter Card */}
+      {searchQuery.trim() && (
+        (() => {
+          const activeBuilder = PERMITS.find(p => (p.builder || '').toLowerCase() === searchQuery.toLowerCase());
+          if (!activeBuilder) return null;
+          return (
+            <div
+              style={{
+                position: 'fixed',
+                top: 'calc(135px + env(safe-area-inset-top, 0px))',
+                left: 12,
+                zIndex: 25,
+                maxWidth: 280,
+                ...glassStyle(0.9),
+                borderRadius: 12,
+                padding: 14,
+                borderLeft: `4px solid ${T.blue}`,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>
+                    Filtering by
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: T.blue, marginTop: 4 }}>
+                    {activeBuilder.builder}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: 20,
+                    color: T.textMuted,
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                  title="Clear filter"
+                >
+                  ✕
+                </button>
+              </div>
+              {activeBuilder.contact && (
+                <div style={{ fontSize: 12, color: T.textSub, marginBottom: 6 }}>
+                  <strong>Contact:</strong> {activeBuilder.contact}
+                </div>
+              )}
+              {activeBuilder.phone && (
+                <div style={{ fontSize: 12, color: T.blue, fontWeight: 600 }}>
+                  📞 {activeBuilder.phone}
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 8 }}>
+                Showing {filtered.length} permit{filtered.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+          );
+        })()
+      )}
+
       {/* Visit Modal */}
       {showVisitModal && selectedPermit && (
         <VisitModal 
