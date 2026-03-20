@@ -6,7 +6,6 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { PERMITS, CITIES, CITY_COORDS } from '../../lib/permits';
 import { geocodePermits, applyGeocodedCoords, clearGeocodeCache } from '../../lib/geocode';
 import VisitModal from './VisitModal';
-import SearchPanel from './SearchPanel';
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const T = {
@@ -1182,7 +1181,26 @@ function PermitMapInner({ activeUser, onLogout }) {
 
         {/* Legend */}
         <div style={card}>
-          <div style={cardTitle}>Legend</div>
+          <div style={cardTitle}>Search & Legend</div>
+          <input
+            type="text"
+            placeholder="Filter builders…"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 10px',
+              border: `1px solid ${T.cardBorder}`,
+              borderRadius: 6,
+              fontSize: 12,
+              fontFamily: 'inherit',
+              marginBottom: 12,
+              boxSizing: 'border-box',
+            }}
+          />
+          <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 10 }}>
+            {PERMITS.filter(p => !searchQuery.trim() || (p.builder || '').toLowerCase().includes(searchQuery.toLowerCase())).length} of {PERMITS.length} permits
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: T.blue, border: '2px solid #fff', boxShadow: '0 0 0 1px #ddd' }} />
             <span style={{ fontSize: 13, color: T.text }}>Custom / Indie Builder</span>
@@ -1381,13 +1399,6 @@ function PermitMapInner({ activeUser, onLogout }) {
       )}
 
       {/* Search Panel */}
-      <SearchPanel 
-        searchQuery={searchQuery} 
-        onSearchChange={setSearchQuery}
-        filteredCount={PERMITS.filter(p => !searchQuery.trim() || (p.builder || '').toLowerCase().includes(searchQuery.toLowerCase())).length}
-        totalCount={PERMITS.length}
-      />
-
       {/* Visit Modal */}
       {showVisitModal && selectedPermit && (
         <VisitModal 
