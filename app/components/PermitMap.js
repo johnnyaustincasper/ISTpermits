@@ -944,7 +944,7 @@ function PermitMapInner({ activeUser, onLogout }) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: T.blue }}>{activeUser}</span>
-              <button onClick={onLogout} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, background: '#fff', border: `1px solid ${T.cardBorder}`, color: T.textSub, cursor: 'pointer', fontFamily: 'inherit' }}>Log out</button>
+              <button onClick={onLogout} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: T.textSub, cursor: 'pointer', fontFamily: 'inherit' }}>Log out</button>
             </div>
           </div>
         </div>
@@ -954,11 +954,18 @@ function PermitMapInner({ activeUser, onLogout }) {
       <div style={{ position: 'absolute', top: 'calc(76px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 10, display: 'flex', gap: 5 }}>
         {Object.keys(STYLES).map(s => (
           <button key={s} onClick={() => changeStyle(s)} style={{
-            padding: '8px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontWeight: 600,
-            border: mapStyle === s ? `1.5px solid ${T.blue}` : `1px solid ${T.cardBorder}`,
-            background: mapStyle === s ? T.blueLight : T.card,
+            padding: '8px 14px',
+            borderRadius: 8,
+            fontSize: 12,
+            cursor: 'pointer',
+            fontWeight: 600,
+            border: mapStyle === s ? `1.5px solid ${T.blue}` : '1px solid rgba(255,255,255,0.6)',
+            background: mapStyle === s ? 'rgba(37, 99, 235, 0.2)' : 'rgba(255,255,255,0.4)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
             color: mapStyle === s ? T.blue : T.textSub,
-            boxShadow: T.shadow, fontFamily: 'inherit', textTransform: 'capitalize',
+            fontFamily: 'inherit',
+            textTransform: 'capitalize',
           }}>{s}</button>
         ))}
       </div>
@@ -998,10 +1005,12 @@ function PermitMapInner({ activeUser, onLogout }) {
         <button onClick={() => setShowDashboard(true)} style={{
           position: 'absolute', top: 'calc(132px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
           padding: '10px 16px', borderRadius: 10,
-          background: T.card,
-          border: `1px solid ${T.cardBorder}`,
+          background: 'rgba(255,255,255,0.4)',
+          border: '1px solid rgba(255,255,255,0.6)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           color: T.text,
-          cursor: 'pointer', boxShadow: T.shadow,
+          cursor: 'pointer',
           fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
         }}>📊 Intel</button>
       )}
@@ -1011,10 +1020,12 @@ function PermitMapInner({ activeUser, onLogout }) {
         <button onClick={() => { setTeamView(true); setShowRoutePanel(false); setShowTeamPanel(false); setPanelOpen(false); }} style={{
           position: 'absolute', top: 'calc(180px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
           padding: '10px 16px', borderRadius: 10,
-          background: T.card,
-          border: `1px solid ${T.cardBorder}`,
+          background: 'rgba(255,255,255,0.4)',
+          border: '1px solid rgba(255,255,255,0.6)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           color: T.text,
-          cursor: 'pointer', boxShadow: T.shadow,
+          cursor: 'pointer',
           fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
         }}>👥 Team</button>
       )}
