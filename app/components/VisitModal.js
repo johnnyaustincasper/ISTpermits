@@ -2,19 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { logVisit, getVisitsForPermit, deleteVisit } from '../../lib/visitTracking';
+import { LIQUID_GLASS, glassStyle } from '../../lib/theme';
 
-const T = {
-  bg: '#f5f7fa',
-  card: 'rgba(255,255,255,0.97)',
-  cardBorder: 'rgba(0,0,0,0.08)',
-  text: '#1a1a2e',
-  textSub: '#6b7280',
-  textMuted: '#9ca3af',
-  blue: '#2563eb',
-  blueLight: '#eff6ff',
-  blueBorder: '#bfdbfe',
-  blueDark: '#1d4ed8',
-};
+const T = LIQUID_GLASS;
 
 export default function VisitModal({ permit, salesman, onClose }) {
   const [visits, setVisits] = useState([]);
@@ -67,7 +57,9 @@ export default function VisitModal({ permit, salesman, onClose }) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.4)',
+        background: 'rgba(0,0,0,0.3)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -77,9 +69,8 @@ export default function VisitModal({ permit, salesman, onClose }) {
     >
       <div
         style={{
-          background: T.card,
-          borderRadius: 12,
-          boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+          ...glassStyle(0.95),
+          borderRadius: 16,
           maxWidth: 500,
           width: '90%',
           maxHeight: '80vh',
@@ -92,10 +83,11 @@ export default function VisitModal({ permit, salesman, onClose }) {
         <div
           style={{
             padding: '16px',
-            borderBottom: `1px solid ${T.cardBorder}`,
+            borderBottom: `1px solid rgba(255,255,255,0.6)`,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            background: 'rgba(255,255,255,0.3)',
           }}
         >
           <div>
@@ -125,15 +117,14 @@ export default function VisitModal({ permit, salesman, onClose }) {
           {/* Log Visit Form */}
           <div
             style={{
-              background: T.blueLight,
-              border: `1px solid ${T.blueBorder}`,
-              borderRadius: 8,
+              ...glassStyle(0.8),
+              borderRadius: 12,
               padding: 12,
               marginBottom: 16,
             }}
           >
-            <div style={{ fontSize: 14, fontWeight: 600, color: T.blue, marginBottom: 10 }}>
-              Log New Visit
+            <div style={{ fontSize: 14, fontWeight: 600, color: T.indigo, marginBottom: 10 }}>
+              📝 Log New Visit
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
               <input
@@ -142,10 +133,12 @@ export default function VisitModal({ permit, salesman, onClose }) {
                 onChange={e => setVisitDate(e.target.value)}
                 style={{
                   padding: '8px 10px',
-                  border: `1px solid ${T.cardBorder}`,
-                  borderRadius: 6,
+                  border: `1px solid rgba(255,255,255,0.6)`,
+                  borderRadius: 8,
                   fontSize: 13,
                   fontFamily: 'inherit',
+                  background: 'rgba(255,255,255,0.4)',
+                  color: T.text,
                 }}
               />
               <input
@@ -154,26 +147,30 @@ export default function VisitModal({ permit, salesman, onClose }) {
                 onChange={e => setVisitTime(e.target.value)}
                 style={{
                   padding: '8px 10px',
-                  border: `1px solid ${T.cardBorder}`,
-                  borderRadius: 6,
+                  border: `1px solid rgba(255,255,255,0.6)`,
+                  borderRadius: 8,
                   fontSize: 13,
                   fontFamily: 'inherit',
+                  background: 'rgba(255,255,255,0.4)',
+                  color: T.text,
                 }}
               />
             </div>
             <textarea
-              placeholder="Visit notes..."
+              placeholder="Visit notes…"
               value={notes}
               onChange={e => setNotes(e.target.value)}
               style={{
                 width: '100%',
                 minHeight: 70,
                 padding: '8px 10px',
-                border: `1px solid ${T.cardBorder}`,
-                borderRadius: 6,
+                border: `1px solid rgba(255,255,255,0.6)`,
+                borderRadius: 8,
                 fontSize: 13,
                 fontFamily: 'inherit',
                 resize: 'none',
+                background: 'rgba(255,255,255,0.4)',
+                color: T.text,
               }}
             />
             <button
@@ -182,11 +179,11 @@ export default function VisitModal({ permit, salesman, onClose }) {
               style={{
                 width: '100%',
                 marginTop: 10,
-                padding: '8px 12px',
+                padding: '10px 12px',
                 background: submitting || !visitDate ? '#ccc' : T.blue,
                 color: '#fff',
                 border: 'none',
-                borderRadius: 6,
+                borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: submitting || !visitDate ? 'default' : 'pointer',
@@ -202,7 +199,7 @@ export default function VisitModal({ permit, salesman, onClose }) {
           </div>
           {loading ? (
             <div style={{ color: T.textMuted, fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
-              Loading...
+              Loading…
             </div>
           ) : visits.length === 0 ? (
             <div style={{ color: T.textMuted, fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
@@ -214,9 +211,8 @@ export default function VisitModal({ permit, salesman, onClose }) {
                 <div
                   key={visit.id}
                   style={{
-                    background: '#f9fafb',
-                    border: `1px solid ${T.cardBorder}`,
-                    borderRadius: 8,
+                    ...glassStyle(0.7),
+                    borderRadius: 10,
                     padding: 12,
                   }}
                 >

@@ -7,27 +7,10 @@ import { PERMITS, CITIES, CITY_COORDS } from '../../lib/permits';
 import { geocodePermits, applyGeocodedCoords, clearGeocodeCache } from '../../lib/geocode';
 import VisitModal from './VisitModal';
 import Dashboard from './Dashboard';
+import { LIQUID_GLASS, glassStyle, glassButton, glassButtonGhost } from '../../lib/theme';
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
-const T = {
-  bg: '#f5f7fa',
-  card: 'rgba(255,255,255,0.97)',
-  cardBorder: 'rgba(0,0,0,0.08)',
-  text: '#1a1a2e',
-  textSub: '#6b7280',
-  textMuted: '#9ca3af',
-  blue: '#2563eb',
-  blueLight: '#eff6ff',
-  blueBorder: '#bfdbfe',
-  blueDark: '#1d4ed8',
-  green: '#16a34a',
-  greenLight: '#f0fdf4',
-  greenBorder: '#bbf7d0',
-  orange: '#ea580c',
-  orangeLight: '#fff7ed',
-  shadow: '0 2px 16px rgba(0,0,0,0.10)',
-  shadowLg: '0 -4px 32px rgba(0,0,0,0.12)',
-};
+const T = LIQUID_GLASS;
 
 const STYLES = {
   satellite: 'mapbox://styles/mapbox/satellite-v9',
@@ -945,7 +928,7 @@ function PermitMapInner({ activeUser, onLogout }) {
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0 }} />
 
       {/* Header */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, background: 'linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.5) 75%, transparent 100%)', padding: '14px 16px 32px', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, ...glassStyle(0.85), padding: '14px 16px 32px', pointerEvents: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -982,12 +965,21 @@ function PermitMapInner({ activeUser, onLogout }) {
 
       {/* Sidebar toggle */}
       <button onClick={() => { setPanelOpen(prev => !prev); setShowRoutePanel(false); }} style={{
-        position: 'absolute', top: 'calc(80px + env(safe-area-inset-top, 0px))', left: panelOpen ? 256 : 12, zIndex: 20,
-        width: 42, height: 42, borderRadius: 10,
-        background: T.card, border: `1px solid ${T.cardBorder}`,
-        color: T.text, cursor: 'pointer', boxShadow: T.shadow,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 18, transition: 'left 0.3s ease',
+        position: 'absolute',
+        top: 'calc(80px + env(safe-area-inset-top, 0px))',
+        left: panelOpen ? 256 : 12,
+        zIndex: 20,
+        width: 42,
+        height: 42,
+        borderRadius: 10,
+        ...glassStyle(0.85),
+        color: T.text,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 18,
+        transition: 'left 0.3s ease',
       }}>{panelOpen ? '◀' : '☰'}</button>
 
       {/* Route list toggle button */}
@@ -1167,8 +1159,8 @@ function PermitMapInner({ activeUser, onLogout }) {
       <div style={{ position: 'absolute', top: 'calc(76px + env(safe-area-inset-top, 0px))', left: panelOpen ? 12 : -260, zIndex: 10, width: 238, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 120px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))', overflowY: 'auto', transition: 'left 0.3s ease', paddingBottom: 16 }}>
 
         {/* City filter */}
-        <div style={card}>
-          <div style={cardTitle}>City</div>
+        <div style={{...glassStyle(0.8), borderRadius: 12, padding: 14}}>
+          <div style={{fontSize: 11, color: T.textMuted, letterSpacing: 1, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase'}}>City</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {CITIES.map(c => (
               <button key={c} onClick={() => flyToCity(c)} style={filterBtn(currentCity === c)}>{c}</button>
@@ -1177,8 +1169,8 @@ function PermitMapInner({ activeUser, onLogout }) {
         </div>
 
         {/* Month filter */}
-        <div style={card}>
-          <div style={cardTitle}>Month</div>
+        <div style={{...glassStyle(0.8), borderRadius: 12, padding: 14}}>
+          <div style={{fontSize: 11, color: T.textMuted, letterSpacing: 1, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase'}}>Month</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {availableMonths.map(m => (
               <button key={m} onClick={() => { setCurrentMonth(m); closeDetail(); }} style={filterBtn(currentMonth === m)}>{m}</button>
@@ -1187,7 +1179,7 @@ function PermitMapInner({ activeUser, onLogout }) {
         </div>
 
         {/* Custom only toggle */}
-        <div style={card}>
+        <div style={{...glassStyle(0.8), borderRadius: 12, padding: 14}}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
             <input type="checkbox" checked={customOnly} onChange={e => { setCustomOnly(e.target.checked); closeDetail(); }} style={{ accentColor: T.blue, width: 18, height: 18 }} />
             <span style={{ fontSize: 14, color: T.text, fontWeight: 500 }}>Custom builders only</span>
@@ -1195,8 +1187,8 @@ function PermitMapInner({ activeUser, onLogout }) {
         </div>
 
         {/* Legend */}
-        <div style={card}>
-          <div style={cardTitle}>Search & Legend</div>
+        <div style={{...glassStyle(0.8), borderRadius: 12, padding: 14}}>
+          <div style={{fontSize: 11, color: T.textMuted, letterSpacing: 1, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase'}}>Search & Legend</div>
           <input
             type="text"
             placeholder="Filter builders…"
@@ -1242,11 +1234,18 @@ function PermitMapInner({ activeUser, onLogout }) {
       {/* Route panel */}
       {showRoutePanel && !selected && (
         <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 25,
-          background: T.card, borderTop: `1px solid ${T.cardBorder}`,
-          borderRadius: '20px 20px 0 0', padding: '18px 18px',
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 25,
+          ...glassStyle(0.95),
+          borderRadius: '20px 20px 0 0',
+          borderTop: '1px solid rgba(255,255,255,0.6)',
+          padding: '18px 18px',
           paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
-          boxShadow: T.shadowLg, maxHeight: '65vh', overflowY: 'auto',
+          maxHeight: '65vh',
+          overflowY: 'auto',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <span style={{ color: T.text, fontWeight: 800, fontSize: 17 }}>🗺 Route — {routeList.length} stop{routeList.length !== 1 ? 's' : ''}</span>
@@ -1289,13 +1288,18 @@ function PermitMapInner({ activeUser, onLogout }) {
             if (dy > 60) closeDetail();
           }}
           style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
-            background: T.card, borderTop: `1px solid ${T.cardBorder}`,
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            ...glassStyle(0.95),
             borderRadius: '20px 20px 0 0',
+            borderTop: '1px solid rgba(255,255,255,0.6)',
             padding: '14px 16px',
             paddingBottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
-            boxShadow: T.shadowLg,
-            maxHeight: '35vh', overflowY: 'auto',
+            maxHeight: '35vh',
+            overflowY: 'auto',
           }}>
           {/* Drag handle */}
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 10px' }} />
@@ -1448,22 +1452,29 @@ function PermitMapInner({ activeUser, onLogout }) {
 }
 
 // ─── Style helpers ─────────────────────────────────────────────────────────────
-const card = {
-  background: 'rgba(255,255,255,0.95)', border: '1px solid rgba(0,0,0,0.07)',
-  borderRadius: 12, padding: 14, boxShadow: '0 2px 10px rgba(0,0,0,0.07)',
-};
-const cardTitle = {
-  fontSize: 11, color: '#6b7280', letterSpacing: 1, fontWeight: 700,
-  marginBottom: 10, textTransform: 'uppercase',
-};
+// ─── Glass-themed button and card helpers ─────────────────────────────────────
 const filterBtn = (active) => ({
-  padding: '6px 12px', borderRadius: 7, fontSize: 13, cursor: 'pointer', fontWeight: active ? 700 : 500,
-  border: active ? '1.5px solid #2563eb' : '1px solid rgba(0,0,0,0.1)',
-  background: active ? '#eff6ff' : '#f9fafb',
-  color: active ? '#2563eb' : '#374151',
+  padding: '6px 12px',
+  borderRadius: 8,
+  fontSize: 13,
+  cursor: 'pointer',
+  fontWeight: active ? 700 : 500,
+  border: active ? `1.5px solid ${T.blue}` : `1px solid rgba(255,255,255,0.6)`,
+  background: active ? 'rgba(37, 99, 235, 0.2)' : 'rgba(255,255,255,0.4)',
+  color: active ? T.blue : T.textSub,
   fontFamily: 'inherit',
+  backdropFilter: 'blur(10px)',
+  transition: 'all 0.2s',
 });
 const ghostBtn = {
-  background: 'none', border: '1px solid rgba(0,0,0,0.1)', color: '#6b7280',
-  cursor: 'pointer', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontFamily: 'inherit',
+  background: 'rgba(255,255,255,0.3)',
+  border: '1px solid rgba(255,255,255,0.6)',
+  color: T.text,
+  cursor: 'pointer',
+  borderRadius: 8,
+  padding: '6px 12px',
+  fontSize: 13,
+  fontFamily: 'inherit',
+  backdropFilter: 'blur(10px)',
+  transition: 'all 0.2s',
 };
