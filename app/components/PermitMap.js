@@ -991,7 +991,7 @@ function PermitMapInner({ activeUser, onLogout }) {
       {/* Route list toggle button */}
       {routeList.length > 0 && !selected && (
         <button onClick={() => { setShowRoutePanel(prev => !prev); setShowTeamPanel(false); setPanelOpen(false); }} style={{
-          position: 'absolute', top: 'calc(132px + env(safe-area-inset-top, 0px))', left: 12, zIndex: 20,
+          position: 'absolute', top: 'calc(180px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
           padding: '10px 16px', borderRadius: 10,
           background: T.blue, border: 'none',
           color: '#fff', cursor: 'pointer', boxShadow: T.shadow,
