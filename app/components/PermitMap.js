@@ -1317,14 +1317,14 @@ function PermitMapInner({ activeUser, onLogout }) {
           {/* Phone — tap to call */}
           {selected.phone && selected.phone !== 'N/A' && (
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 4 }}>Call Builder</div>
+              <div style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 4 }}>Call</div>
               <a href={`tel:${selected.phone.replace(/\D/g,'')}`} style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
                 width: '100%', padding: '10px 0', borderRadius: 10,
                 background: T.greenLight, border: `1.5px solid ${T.greenBorder}`,
                 color: T.green, fontSize: 13, fontWeight: 700, textDecoration: 'none',
               }}>
-                <div style={{ fontSize: 12, fontWeight: 800 }}>{selected.builder}</div>
+                <div style={{ fontSize: 12, fontWeight: 800 }}>{selected.contact || selected.builder}</div>
                 <div style={{ fontSize: 12 }}>📞 {selected.phone}</div>
               </a>
             </div>
