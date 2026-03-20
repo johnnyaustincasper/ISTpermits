@@ -932,7 +932,7 @@ function PermitMapInner({ activeUser, onLogout }) {
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0 }} />
 
       {/* Header */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, ...glassStyle(0.85), padding: '14px 16px 32px', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, padding: '14px 16px 32px', pointerEvents: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
