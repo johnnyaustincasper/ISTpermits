@@ -715,6 +715,10 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDashboard, setShowDashboard] = useState(false);
+  
+  const handleSelectBuilder = (builderName) => {
+    setSearchQuery(builderName);
+  };
   const [dailyRoutes, setDailyRoutes] = useState(() => loadDailyRoutes(activeUser));
   const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
 
@@ -1456,6 +1460,7 @@ function PermitMapInner({ activeUser, onLogout }) {
           salesman={activeUser}
           permits={permits}
           onClose={() => setShowDashboard(false)}
+          onSelectBuilder={handleSelectBuilder}
         />
       )}
     </div>

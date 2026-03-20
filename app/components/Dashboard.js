@@ -27,7 +27,7 @@ const glassStyle = (opacity = 0.7) => ({
   boxShadow: '0 4px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
 });
 
-export default function Dashboard({ salesman, permits, onClose }) {
+export default function Dashboard({ salesman, permits, onClose, onSelectBuilder }) {
   const [tab, setTab] = useState('analytics'); // analytics | timeline | reminders
   const [visits, setVisits] = useState([]);
   const [reminders, setReminders] = useState([]);
@@ -162,8 +162,35 @@ export default function Dashboard({ salesman, permits, onClose }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
               {filteredBuilders.map(s => (
-                <div key={s.builder} style={{ ...glassStyle(0.8), borderRadius: 12, padding: 14 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: LG.text, marginBottom: 8 }}>{s.builder}</div>
+                <div
+                  key={s.builder}
+                  onClick={() => {
+                    onSelectBuilder(s.builder);
+                    onClose();
+                  }}
+                  style={{
+                    ...glassStyle(0.8),
+                    borderRadius: 12,
+                    padding: 14,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    border: '1px solid rgba(79, 70, 229, 0.3)',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.85)';
+                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.15)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.8)';
+                    e.currentTarget.style.boxShadow = '0 4px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+                  }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 800, color: LG.text, marginBottom: 2 }}>{s.builder}</div>
+                  {s.phone && (
+                    <div style={{ fontSize: 12, color: LG.blue, marginBottom: 10, fontWeight: 600 }}>
+                      📞 {s.phone}
+                    </div>
+                  )}
                   
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
                     <div style={{ background: 'rgba(79, 70, 229, 0.1)', borderRadius: 8, padding: 8 }}>
