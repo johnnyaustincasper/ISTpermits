@@ -1292,6 +1292,11 @@ function PermitMapInner({ activeUser, onLogout }) {
               <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>
                 {selected.address}
               </div>
+              {selected.week && (
+                <div style={{ fontSize: 11, color: T.textSub, marginTop: 4, fontWeight: 600 }}>
+                  Week: {selected.week}
+                </div>
+              )}
             </div>
             <button onClick={closeDetail} style={{ ...ghostBtn, marginLeft: 8, flexShrink: 0, padding: '4px 8px' }}>✕</button>
           </div>
