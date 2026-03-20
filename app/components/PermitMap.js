@@ -6,6 +6,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { PERMITS, CITIES, CITY_COORDS } from '../../lib/permits';
 import { geocodePermits, applyGeocodedCoords, clearGeocodeCache } from '../../lib/geocode';
 import VisitModal from './VisitModal';
+import Dashboard from './Dashboard';
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const T = {
@@ -730,6 +731,7 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [selectedPermit, setSelectedPermit] = useState(null);
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showDashboard, setShowDashboard] = useState(false);
   const [dailyRoutes, setDailyRoutes] = useState(() => loadDailyRoutes(activeUser));
   const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
 
@@ -991,7 +993,7 @@ function PermitMapInner({ activeUser, onLogout }) {
       {/* Route list toggle button */}
       {routeList.length > 0 && !selected && (
         <button onClick={() => { setShowRoutePanel(prev => !prev); setShowTeamPanel(false); setPanelOpen(false); }} style={{
-          position: 'absolute', top: 'calc(180px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
+          position: 'absolute', top: 'calc(228px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
           padding: '10px 16px', borderRadius: 10,
           background: T.blue, border: 'none',
           color: '#fff', cursor: 'pointer', boxShadow: T.shadow,
@@ -999,10 +1001,23 @@ function PermitMapInner({ activeUser, onLogout }) {
         }}>🗺 Route ({routeList.length})</button>
       )}
 
+      {/* Dashboard button */}
+      {!selected && (
+        <button onClick={() => setShowDashboard(true)} style={{
+          position: 'absolute', top: 'calc(132px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
+          padding: '10px 16px', borderRadius: 10,
+          background: T.card,
+          border: `1px solid ${T.cardBorder}`,
+          color: T.text,
+          cursor: 'pointer', boxShadow: T.shadow,
+          fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+        }}>📊 Intel</button>
+      )}
+
       {/* Team button */}
       {!selected && (
         <button onClick={() => { setTeamView(true); setShowRoutePanel(false); setShowTeamPanel(false); setPanelOpen(false); }} style={{
-          position: 'absolute', top: 'calc(132px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
+          position: 'absolute', top: 'calc(180px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
           padding: '10px 16px', borderRadius: 10,
           background: T.card,
           border: `1px solid ${T.cardBorder}`,
@@ -1417,6 +1432,15 @@ function PermitMapInner({ activeUser, onLogout }) {
             setShowVisitModal(false);
             setSelectedPermit(null);
           }}
+        />
+      )}
+
+      {/* Dashboard */}
+      {showDashboard && (
+        <Dashboard
+          salesman={activeUser}
+          permits={permits}
+          onClose={() => setShowDashboard(false)}
         />
       )}
     </div>
