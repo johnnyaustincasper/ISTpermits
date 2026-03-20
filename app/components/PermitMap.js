@@ -5,6 +5,8 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { PERMITS, CITIES, CITY_COORDS } from '../../lib/permits';
 import { geocodePermits, applyGeocodedCoords, clearGeocodeCache } from '../../lib/geocode';
+import VisitModal from './VisitModal';
+import SearchPanel from './SearchPanel';
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const T = {
@@ -726,6 +728,9 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [showRoutePanel, setShowRoutePanel] = useState(false);
   const [showTeamPanel, setShowTeamPanel] = useState(false);
   const [teamView, setTeamView] = useState(false);
+  const [selectedPermit, setSelectedPermit] = useState(null);
+  const [showVisitModal, setShowVisitModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [dailyRoutes, setDailyRoutes] = useState(() => loadDailyRoutes(activeUser));
   const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
 
@@ -855,9 +860,17 @@ function PermitMapInner({ activeUser, onLogout }) {
         const m = parseInt((p.week || '').split('/')[0]);
         if (MONTH_NAMES[m-1] !== currentMonth) return false;
       }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        if (!(p.builder || '').toLowerCase().includes(q) &&
+            !(p.address || '').toLowerCase().includes(q) &&
+            !(p.city || '').toLowerCase().includes(q)) {
+          return false;
+        }
+      }
       return true;
     });
-  }, [permits, customOnly, currentCity, currentMonth]);
+  }, [permits, customOnly, currentCity, currentMonth, searchQuery]);
 
   const geoJSON = useMemo(() => buildGeoJSON(filtered, statuses), [filtered, statuses]);
 
@@ -1319,6 +1332,16 @@ function PermitMapInner({ activeUser, onLogout }) {
             }}>
               {isInRoute ? '✓ Added' : '＋ Route'}
             </button>
+            <button onClick={() => { setSelectedPermit(selected); setShowVisitModal(true); }} style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '13px 0', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
+              background: T.blueLight,
+              border: `1px solid ${T.blueBorder}`,
+              color: T.blue,
+              fontSize: 15, fontWeight: 700,
+            }}>
+              📝 Visit Log
+            </button>
           </div>
 
           {/* Map Route button — visible when stops are queued */}
@@ -1380,6 +1403,26 @@ function PermitMapInner({ activeUser, onLogout }) {
             {selected.production ? 'Production Builder' : (Number(selected.value) >= 500000 ? '★ Premium Custom Lead' : '★ Indie Builder Lead')}
           </div>
         </div>
+      )}
+
+      {/* Search Panel */}
+      <SearchPanel 
+        searchQuery={searchQuery} 
+        onSearchChange={setSearchQuery}
+        filteredCount={PERMITS.filter(p => !searchQuery.trim() || (p.builder || '').toLowerCase().includes(searchQuery.toLowerCase())).length}
+        totalCount={PERMITS.length}
+      />
+
+      {/* Visit Modal */}
+      {showVisitModal && selectedPermit && (
+        <VisitModal 
+          permit={selectedPermit}
+          salesman={activeUser}
+          onClose={() => {
+            setShowVisitModal(false);
+            setSelectedPermit(null);
+          }}
+        />
       )}
     </div>
   );
