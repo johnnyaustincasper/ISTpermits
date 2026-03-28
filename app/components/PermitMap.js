@@ -306,12 +306,27 @@ function buildGeoJSON(permits, statuses = {}) {
 function fmt(v) { return '$' + Number(v).toLocaleString(); }
 
 function addLayers(map, data, onClickPermit) {
+  // If source already exists, just update data — don't tear down layers (causes flicker)
+  if (map.getSource('permits')) {
+    map.getSource('permits').setData(data);
+    // Re-wire click handler
+    if (map._permitClick) map.off('click', 'permits-hit', map._permitClick);
+    map._permitClick = (e) => {
+      const f = e.features[0];
+      const p = f.properties;
+      const [lng, lat] = f.geometry.coordinates;
+      onClickPermit({ ...p, lat, lng, production: p.production === true || p.production === 'true' });
+    };
+    map.on('click', 'permits-hit', map._permitClick);
+    return;
+  }
+
   if (map.getLayer('permits-hit')) map.removeLayer('permits-hit');
   if (map.getLayer('permits-labels')) map.removeLayer('permits-labels');
   if (map.getLayer('permits-main')) map.removeLayer('permits-main');
   if (map.getSource('permits')) map.removeSource('permits');
 
-  map.addSource('permits', { type: 'geojson', data });
+  map.addSource('permits', { type: 'geojson', data, generateId: true });
 
   map.addLayer({
     id: 'permits-main',
@@ -916,7 +931,12 @@ function PermitMapInner({ activeUser, onLogout }) {
       pitch: 40,
       bearing: -10,
       antialias: true,
+      fadeDuration: 0,
+      optimizeForTerrain: true,
+      trackResize: true,
     });
+    map.scrollZoom.setWheelZoomRate(1/450);
+    map.scrollZoom.setZoomRate(1/450);
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     map.on('load', () => {
       map.addSource('mapbox-dem', { type: 'raster-dem', url: 'mapbox://mapbox.mapbox-terrain-dem-v1', tileSize: 512, maxzoom: 14 });
