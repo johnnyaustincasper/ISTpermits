@@ -103,114 +103,106 @@ function parsePermitsFromPDF(text, filename) {
   const week = parseWeekFromText(text, filename);
   const permits = [];
 
-  // The NOW Report format — lines look like:
-  // HOUSE-NEW  Builder Name  Address, City  SQFT  VALUE  Contact  Phone
-  // We'll try multiple parsing strategies
+  // The NOW Report PDF has everything compressed (no spaces between words).
+  // Format per entry:
+  //   N)BUILDERNAMECITIEHOUSE-NEWADDRESSSTREETTYPE
+  //   (918)xxx-xxxx/(918)xxx-xxxxSQFTL##B##
+  //   OWNERNAME$VALUE
+  //   SUBDIVISION
 
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const knownCities = {
+    'BROKENARROW': 'Broken Arrow', 'TULSA': 'Tulsa', 'BIXBY': 'Bixby',
+    'OWASSO': 'Owasso', 'JENKS': 'Jenks', 'CLAREMORE': 'Claremore',
+    'WAGONER': 'Wagoner', 'SAPULPA': 'Sapulpa', 'GLENPOOL': 'Glenpool',
+    'SKIATOOK': 'Skiatook', 'COWETA': 'Coweta', 'CATOOSA': 'Catoosa',
+    'SANDSPRINGS': 'Sand Springs', 'INOLA': 'Inola', 'OOLOGAH': 'Oologah',
+    'COLLINSVILLE': 'Collinsville', 'SPERRY': 'Sperry', 'VERDIGRIS': 'Verdigris',
+    'BARTLESVILLE': 'Bartlesville',
+  };
 
-  // Strategy 1: Find lines starting with HOUSE-NEW and parse structured data
-  // Each permit spans multiple lines typically
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
+  // Split on numbered entries like "1)" "2)" ... "99)"
+  const entryPattern = /(\d+\))([\s\S]*?)(?=\d+\)|Page\s*\d+|$)/g;
+  let match;
 
-    // Look for HOUSE-NEW marker
-    if (/HOUSE-NEW/i.test(line)) {
-      try {
-        // Collect next several lines as part of this entry
-        const block = [line];
-        for (let j = 1; j <= 6 && i + j < lines.length; j++) {
-          const next = lines[i + j];
-          if (/HOUSE-NEW/i.test(next)) break; // new entry starts
-          block.push(next);
-        }
-        const fullText = block.join(' ');
+  while ((match = entryPattern.exec(text)) !== null) {
+    const block = match[2];
+    if (!/HOUSE-NEW/i.test(block)) continue;
 
-        // Extract phone number (pattern: (xxx)xxx-xxxx or xxx-xxx-xxxx)
-        const phoneMatch = fullText.match(/\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}/);
-        const phone = phoneMatch ? phoneMatch[0].replace(/\s/g, '') : '';
+    try {
+      // Phone — (918)xxx-xxxx pattern
+      const phoneMatches = block.match(/\(\d{3}\)[\d\/-]+/g) || [];
+      const phone = phoneMatches[0] ? phoneMatches[0].split('/')[0] : '';
 
-        // Extract value (dollar amounts like $123,456 or 123456)
-        const valueMatches = fullText.match(/\$[\d,]+|\b\d{3,7}\b/g) || [];
-        const value = valueMatches.length > 0 ? parseInt(valueMatches[0].replace(/[$,]/g, '')) : 0;
+      // Sqft — digits immediately after phone number(s), before L##B## or newline
+      // e.g. "(918)779-55682,845" → 2845  or "(918)779-5568/(918)924-83712,845"
+      const sqftMatch = block.match(/\(\d{3}\)[\d\/\-]+?([\d,]{3,7})(?:\s*L\d|\s*$|\n)/m);
+      const sqft = sqftMatch ? parseInt(sqftMatch[1].replace(/,/g, '')) : 0;
 
-        // Extract sqft (typically 4-5 digit number)
-        const sqftMatch = fullText.match(/\b(\d{4,5})\b/);
-        const sqft = sqftMatch ? parseInt(sqftMatch[1]) : 0;
+      // Value — $xxx,xxx
+      const valueMatch = block.match(/\$[\d,]+/);
+      const value = valueMatch ? parseInt(valueMatch[0].replace(/[$,]/g, '')) : 0;
 
-        // Extract city — look for known cities
-        const knownCities = ['Tulsa', 'Broken Arrow', 'Bixby', 'Owasso', 'Jenks', 'Claremore',
-          'Wagoner', 'Sapulpa', 'Glenpool', 'Skiatook', 'Coweta', 'Catoosa',
-          'Sand Springs', 'Inola', 'Oologah', 'Bartlesville', 'Stillwater'];
-        let city = '';
-        for (const c of knownCities) {
-          if (fullText.includes(c)) { city = c; break; }
-        }
+      // Address — digits + street suffix (compressed, e.g. "8117EJACKSONCIR")
+      // After HOUSE-NEW, grab everything up to phone number
+      const afterHouseNew = block.split(/HOUSE-NEW/i)[1] || '';
+      const beforePhone = afterHouseNew.split(/\(\d{3}\)/)[0] || afterHouseNew;
+      
+      // Try to find address number + compressed street
+      const addrRaw = beforePhone.trim();
+      // Insert spaces: before digit runs, before all-caps sequences
+      let address = addrRaw
+        .replace(/(\d+)([A-Z])/g, '$1 $2')
+        .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-        // Extract address — look for street patterns
-        const addrMatch = fullText.match(/\d+\s+[NSEW]?\s*\d*\s*[A-Za-z][A-Za-z\s]+(?:St|Av|Ave|Rd|Dr|Ln|Blvd|Pl|Ct|Ter|Tr|Way|Pkwy|Hwy)\b/i);
-        const address = addrMatch ? addrMatch[0].trim() : '';
-
-        // Extract builder name (typically appears after HOUSE-NEW, before address)
-        // Rough heuristic: text before the address
-        let builder = '';
-        if (address && fullText.includes(address)) {
-          const beforeAddr = fullText.split(address)[0].replace(/HOUSE-NEW/i, '').trim();
-          // Take the first meaningful chunk
-          builder = beforeAddr.replace(/\s+/g, ' ').trim().split(/\s{2,}/)[0] || '';
-          // Clean up
-          builder = builder.replace(/[^A-Za-z0-9\s&'.-]/g, '').trim();
-        }
-
-        // Extract contact name (person name — typically Title Case words not matching address)
-        const contactMatch = fullText.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)(?=\s*\(?\d{3}\)?)/);
-        const contact = contactMatch ? contactMatch[1] : '';
-
-        if (address && city) {
-          permits.push({
-            builder: builder || 'Unknown',
-            address,
-            city,
-            sqft,
-            value,
-            contact,
-            phone,
-            week,
-            production: isProduction(builder),
-          });
-        }
-      } catch (err) {
-        // Skip malformed entry
-      }
-    }
-    i++;
-  }
-
-  // If strategy 1 found nothing, try tabular parsing
-  if (permits.length === 0) {
-    console.log('  Strategy 1 found no permits, trying tabular parse...');
-    // Look for tab/space-separated rows
-    const houseNewLines = lines.filter(l => /HOUSE.?NEW/i.test(l));
-    for (const line of houseNewLines) {
-      const parts = line.split(/\t|\s{2,}/).map(p => p.trim()).filter(Boolean);
-      if (parts.length >= 4) {
-        const builder = parts[1] || '';
-        const address = parts[2] || '';
-        const city = parts[3] || '';
-        const sqft = parseInt(parts[4]) || 0;
-        const value = parseInt((parts[5] || '').replace(/[$,]/g, '')) || 0;
-        const contact = parts[6] || '';
-        const phone = parts[7] || '';
-        if (address) {
-          permits.push({ builder, address, city, sqft, value, contact, phone, week, production: isProduction(builder) });
+      // Remove city name suffix if present
+      for (const c of Object.keys(knownCities)) {
+        if (address.toUpperCase().endsWith(c)) {
+          address = address.slice(0, -c.length).trim();
         }
       }
-    }
+
+      // City — find which jurisdiction section this entry is in
+      const textBefore = text.substring(0, match.index);
+      let city = 'Tulsa';
+      let lastCityPos = -1;
+      for (const [key, val] of Object.entries(knownCities)) {
+        const idx = textBefore.lastIndexOf(key);
+        if (idx > lastCityPos) { lastCityPos = idx; city = val; }
+      }
+
+      // Builder — text before HOUSE-NEW, strip city name
+      let builderRaw = (block.split(/HOUSE-NEW/i)[0] || '').trim();
+      for (const c of Object.keys(knownCities)) {
+        builderRaw = builderRaw.replace(new RegExp(c + '$', 'i'), '').trim();
+      }
+      let builder = builderRaw
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/([A-Z]{2,})([A-Z][a-z])/g, '$1 $2')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (!address || address.length < 5) continue;
+
+      permits.push({
+        builder: builder || 'Unknown',
+        address,
+        city,
+        sqft,
+        value,
+        contact: '',
+        phone,
+        week,
+        production: isProduction(builder),
+      });
+    } catch (e) { /* skip malformed */ }
   }
 
   return permits;
 }
+
 
 // ── Firestore writer ─────────────────────────────────────────────────────────
 async function getFirestore() {

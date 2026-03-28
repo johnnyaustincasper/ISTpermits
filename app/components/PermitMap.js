@@ -1514,15 +1514,17 @@ function PermitMapInner({ activeUser, onLogout }) {
             left: 0,
             right: 0,
             zIndex: 20,
-            ...glassStyle(0.95),
+            background: 'rgba(10,10,15,0.97)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
             borderRadius: '20px 20px 0 0',
-            borderTop: '1px solid rgba(255,255,255,0.6)',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
             padding: '14px 16px',
             paddingBottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
             maxHeight: '35vh',
             overflowY: 'auto',
           }}>
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 10px' }} />
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', margin: '0 auto 10px' }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
@@ -1786,8 +1788,8 @@ const filterBtn = (active) => ({
 });
 
 const ghostBtn = {
-  background: 'rgba(255,255,255,0.3)',
-  border: '1px solid rgba(255,255,255,0.6)',
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.12)',
   color: T.text,
   cursor: 'pointer',
   borderRadius: 8,
