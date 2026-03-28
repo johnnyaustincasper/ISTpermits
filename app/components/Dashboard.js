@@ -6,25 +6,25 @@ import { PHASES, INSULATION_TYPES, getFollowUpReminders, completeReminder } from
 import { getVisitsForSalesman } from '../../lib/visitTracking';
 
 const LG = {
-  bg: 'rgba(255, 255, 255, 0.5)',
-  card: 'rgba(255, 255, 255, 0.7)',
-  cardBorder: 'rgba(255, 255, 255, 0.5)',
-  text: '#1a1a2e',
-  textSub: '#6b7280',
-  textMuted: '#9ca3af',
-  blue: '#2563eb',
-  indigo: '#4f46e5',
+  bg: '#0A0A0F',
+  card: 'rgba(255,255,255,0.04)',
+  cardBorder: 'rgba(255,255,255,0.08)',
+  text: '#F0F0F5',
+  textSub: 'rgba(240,240,245,0.5)',
+  textMuted: 'rgba(240,240,245,0.35)',
+  blue: '#00D47E',
+  indigo: '#00D47E',
   green: '#10b981',
-  accent: 'rgba(79, 70, 229, 0.1)',
-  accentBorder: 'rgba(79, 70, 229, 0.3)',
+  accent: 'rgba(0,212,126,0.1)',
+  accentBorder: 'rgba(0,212,126,0.2)',
 };
 
-const glassStyle = (opacity = 0.7) => ({
-  background: `rgba(255, 255, 255, ${opacity})`,
+const glassStyle = (opacity = 0.04) => ({
+  background: `rgba(255,255,255,${opacity})`,
   backdropFilter: 'blur(20px)',
   WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(255, 255, 255, 0.6)',
-  boxShadow: '0 4px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  boxShadow: '0 4px 32px rgba(0,0,0,0.4)',
 });
 
 export default function Dashboard({ salesman, permits, onClose, onSelectBuilder }) {
@@ -98,21 +98,42 @@ export default function Dashboard({ salesman, permits, onClose, onSelectBuilder 
         position: 'fixed',
         inset: 0,
         zIndex: 60,
-        background: 'linear-gradient(135deg, rgba(240,242,245,0.95) 0%, rgba(248,250,252,0.95) 100%)',
+        background: '#0A0A0F',
         backdropFilter: 'blur(24px)',
         display: 'flex',
         flexDirection: 'column',
         paddingTop: 'env(safe-area-inset-top, 0px)',
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
       }}
     >
       {/* Header */}
-      <div style={{ ...glassStyle(0.85), padding: '16px', borderBottom: `1px solid rgba(255,255,255,0.6)`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: LG.text, margin: 0 }}>📊 Builder Intel</h1>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: LG.textMuted }}>✕</button>
+      <div style={{
+        background: 'rgba(10,10,15,0.92)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        padding: '16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: LG.text, margin: 0, letterSpacing: 0.3 }}>
+          <span style={{ color: '#00D47E' }}>Builder</span> Intel
+        </h1>
+        <button onClick={onClose} style={{
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 8,
+          fontSize: 18,
+          cursor: 'pointer',
+          color: LG.textSub,
+          padding: '4px 10px',
+          lineHeight: 1.4,
+        }}>✕</button>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid rgba(255,255,255,0.6)`, background: 'rgba(255,255,255,0.3)' }}>
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
         {['analytics', 'timeline', 'reminders'].map(t => (
           <button
             key={t}
@@ -120,13 +141,13 @@ export default function Dashboard({ salesman, permits, onClose, onSelectBuilder 
             style={{
               flex: 1,
               padding: '14px 16px',
-              background: tab === t ? 'rgba(255,255,255,0.8)' : 'transparent',
+              background: tab === t ? 'rgba(0,212,126,0.06)' : 'transparent',
               border: 'none',
-              borderBottom: tab === t ? `3px solid ${LG.blue}` : 'none',
+              borderBottom: tab === t ? '3px solid #00D47E' : '3px solid transparent',
               cursor: 'pointer',
               fontSize: 13,
               fontWeight: 700,
-              color: tab === t ? LG.blue : LG.textMuted,
+              color: tab === t ? '#00D47E' : LG.textMuted,
               fontFamily: 'inherit',
               transition: 'all 0.2s',
             }}
@@ -151,11 +172,15 @@ export default function Dashboard({ salesman, permits, onClose, onSelectBuilder 
                 style={{
                   width: '100%',
                   padding: '10px 14px',
-                  ...glassStyle(0.9),
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(10px)',
                   borderRadius: 10,
                   fontSize: 13,
                   fontFamily: 'inherit',
                   boxSizing: 'border-box',
+                  color: LG.text,
+                  outline: 'none',
                 }}
               />
             </div>
@@ -169,35 +194,38 @@ export default function Dashboard({ salesman, permits, onClose, onSelectBuilder 
                     onClose();
                   }}
                   style={{
-                    ...glassStyle(0.8),
+                    background: 'rgba(255,255,255,0.04)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(0,212,126,0.15)',
                     borderRadius: 12,
                     padding: 14,
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    border: '1px solid rgba(79, 70, 229, 0.3)',
+                    boxShadow: '0 2px 16px rgba(0,0,0,0.3)',
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.85)';
-                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.background = 'rgba(0,212,126,0.06)';
+                    e.currentTarget.style.borderColor = 'rgba(0,212,126,0.3)';
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.8)';
-                    e.currentTarget.style.boxShadow = '0 4px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                    e.currentTarget.style.borderColor = 'rgba(0,212,126,0.15)';
                   }}
                 >
                   <div style={{ fontSize: 14, fontWeight: 800, color: LG.text, marginBottom: 2 }}>{s.builder}</div>
                   {s.phone && (
-                    <div style={{ fontSize: 12, color: LG.blue, marginBottom: 10, fontWeight: 600 }}>
+                    <div style={{ fontSize: 12, color: '#00D47E', marginBottom: 10, fontWeight: 600 }}>
                       📞 {s.phone}
                     </div>
                   )}
                   
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                    <div style={{ background: 'rgba(79, 70, 229, 0.1)', borderRadius: 8, padding: 8 }}>
+                    <div style={{ background: 'rgba(0,212,126,0.08)', borderRadius: 8, padding: 8 }}>
                       <div style={{ fontSize: 11, color: LG.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Permits</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: LG.indigo }}>{s.totalPermits}</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: '#00D47E' }}>{s.totalPermits}</div>
                     </div>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', borderRadius: 8, padding: 8 }}>
+                    <div style={{ background: 'rgba(16,185,129,0.08)', borderRadius: 8, padding: 8 }}>
                       <div style={{ fontSize: 11, color: LG.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Visits</div>
                       <div style={{ fontSize: 16, fontWeight: 800, color: LG.green }}>{s.visitCount || 0}</div>
                     </div>
@@ -205,7 +233,7 @@ export default function Dashboard({ salesman, permits, onClose, onSelectBuilder 
 
                   {s.contact && (
                     <div style={{ fontSize: 12, color: LG.textSub, marginBottom: 6 }}>
-                      <strong>Contact:</strong> {s.contact}
+                      <strong style={{ color: LG.textMuted }}>Contact:</strong> {s.contact}
                     </div>
                   )}
 
@@ -233,7 +261,15 @@ export default function Dashboard({ salesman, permits, onClose, onSelectBuilder 
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {visits.sort((a, b) => b.visitDate - a.visitDate).map(v => (
-                  <div key={v.id} style={{ ...glassStyle(0.8), borderRadius: 10, padding: 12 }}>
+                  <div key={v.id} style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 10,
+                    padding: 12,
+                    boxShadow: '0 2px 16px rgba(0,0,0,0.3)',
+                  }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 6 }}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: LG.text }}>{v.builderName}</div>
@@ -244,7 +280,7 @@ export default function Dashboard({ salesman, permits, onClose, onSelectBuilder 
                       <div style={{ fontSize: 12, color: LG.textMuted }}>{v.salesman}</div>
                     </div>
                     {v.notes && (
-                      <div style={{ fontSize: 12, color: LG.textSub, fontStyle: 'italic', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.4)' }}>
+                      <div style={{ fontSize: 12, color: LG.textSub, fontStyle: 'italic', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                         "{v.notes}"
                       </div>
                     )}
@@ -265,10 +301,14 @@ export default function Dashboard({ salesman, permits, onClose, onSelectBuilder 
                   <div
                     key={r.id}
                     style={{
-                      ...glassStyle(0.8),
+                      background: 'rgba(255,255,255,0.04)',
+                      backdropFilter: 'blur(12px)',
+                      WebkitBackdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(255,255,255,0.08)',
                       borderRadius: 10,
                       padding: 12,
-                      borderLeft: `4px solid ${LG.blue}`,
+                      borderLeft: '4px solid #00D47E',
+                      boxShadow: '0 2px 16px rgba(0,0,0,0.3)',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 6 }}>
@@ -281,8 +321,8 @@ export default function Dashboard({ salesman, permits, onClose, onSelectBuilder 
                       <button
                         onClick={() => { completeReminder(r.id); loadData(); }}
                         style={{
-                          background: LG.green,
-                          color: '#fff',
+                          background: '#00D47E',
+                          color: '#0A0A0F',
                           border: 'none',
                           borderRadius: 6,
                           padding: '6px 12px',

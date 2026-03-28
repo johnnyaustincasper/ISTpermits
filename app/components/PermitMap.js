@@ -14,6 +14,22 @@ import { LIQUID_GLASS, glassStyle, glassButton, glassButtonGhost } from '../../l
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const T = LIQUID_GLASS;
 
+// Dark luxury sidebar colors (independent of T)
+const D = {
+  bg: '#0A0A0F',
+  sidebar: 'rgba(10,10,15,0.92)',
+  topbar: 'rgba(10,10,15,0.88)',
+  accent: '#00D47E',
+  accentBg: 'rgba(0,212,126,0.08)',
+  accentBorder: 'rgba(0,212,126,0.25)',
+  border: 'rgba(255,255,255,0.06)',
+  borderSub: 'rgba(255,255,255,0.08)',
+  text: '#F0F0F5',
+  textSub: 'rgba(240,240,245,0.55)',
+  textMuted: 'rgba(240,240,245,0.35)',
+  hover: 'rgba(255,255,255,0.04)',
+};
+
 const STYLES = {
   satellite: 'mapbox://styles/mapbox/satellite-v9',
   hybrid: 'mapbox://styles/mapbox/satellite-streets-v12',
@@ -75,12 +91,11 @@ function logVisit(user, permit, statusKey) {
   if (!permit || !statusKey || statusKey === 'pass') return;
   const log = loadVisitLog(user);
   const today = new Date().toISOString().slice(0, 10);
-  // Update existing entry for this permit today, or add new
   const existingIdx = log.findIndex(e => e.permitId === String(permit.id) && e.date === today);
   const entry = { permitId: String(permit.id), builder: permit.builder, address: permit.address, city: permit.city || '', status: statusKey, date: today, ts: Date.now() };
   if (existingIdx >= 0) log[existingIdx] = entry;
   else log.unshift(entry);
-  saveVisitLog(user, log.slice(0, 500)); // cap at 500 entries
+  saveVisitLog(user, log.slice(0, 500));
 }
 function loadDailyRoutes(user) {
   if (typeof window === 'undefined') return {};
@@ -90,10 +105,9 @@ function saveDailyRoutes(user, routes) {
   if (typeof window !== 'undefined') localStorage.setItem(DAILY_ROUTES_KEY(user), JSON.stringify(routes));
 }
 
-// ─── Intro Animation ──────────────────────────────────────────────────────────
 // ─── Login Screen ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
-  const [step, setStep] = useState('pick'); // pick | pin | setup | confirm
+  const [step, setStep] = useState('pick');
   const [selectedUser, setSelectedUser] = useState(null);
   const [pin, setPin] = useState('');
   const [setupPin, setSetupPin] = useState('');
@@ -146,7 +160,6 @@ function LoginScreen({ onLogin }) {
       return;
     }
 
-    // step === 'pin' — verify
     const next = pin + digit;
     if (next.length > 4) return;
     setPin(next);
@@ -299,7 +312,6 @@ function addLayers(map, data, onClickPermit) {
 
   map.addSource('permits', { type: 'geojson', data });
 
-  // Visual circle
   map.addLayer({
     id: 'permits-main',
     type: 'circle',
@@ -314,7 +326,6 @@ function addLayers(map, data, onClickPermit) {
     },
   });
 
-  // Invisible oversized hit-target layer for easier tapping
   map.addLayer({
     id: 'permits-hit',
     type: 'circle',
@@ -360,7 +371,6 @@ function addLayers(map, data, onClickPermit) {
 
 // ─── Team Page ────────────────────────────────────────────────────────────────
 function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addToDailyRoute, removeFromDailyRoute, myRoute }) {
-  // Load each salesman's daily routes independently from their own localStorage key
   const allDailyRoutes = useMemo(() => {
     const result = {};
     SALESMEN.forEach(name => { result[name] = loadDailyRoutes(name); });
@@ -375,9 +385,9 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
   const statusLabels = { called: 'Called', quoted: 'Quoted', won: 'Won', route: 'Route', pass: 'Pass' };
 
   const [profileUser, setProfileUser] = useState(null);
-  const [dayPlanner, setDayPlanner] = useState(null); // { dateStr, name } — whose day we're planning
+  const [dayPlanner, setDayPlanner] = useState(null);
   const [plannerSearch, setPlannerSearch] = useState('');
-  const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, 1 = next, -1 = last
+  const [weekOffset, setWeekOffset] = useState(0);
 
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((dow + 6) % 7) + weekOffset * 7);
@@ -392,7 +402,6 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
     return { name, statuses, route, visitLog, activeStatuses, passStatuses };
   });
 
-  // Overlap detection
   const builderMap = {};
   teamData.forEach(({ name, statuses, route }) => {
     Object.entries(statuses).forEach(([id, status]) => {
@@ -411,7 +420,6 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
   });
   const conflicts = Object.entries(builderMap).filter(([, entries]) => [...new Set(entries.map(e => e.user))].length > 1);
 
-  // ── Profile Page ──────────────────────────────────────────────────────────
   if (profileUser) {
     const d = teamData.find(t => t.name === profileUser);
     const visitLog = loadVisitLog(profileUser);
@@ -430,7 +438,6 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px 24px' }}>
-          {/* Stat cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 18 }}>
             {[
               { label: 'Visited', value: totalVisited, color: T.blue },
@@ -455,7 +462,6 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
             </div>
           </div>
 
-          {/* Visit history */}
           <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 10 }}>📋 Visit History</div>
           {visitLog.length === 0 ? (
             <div style={{ fontSize: 13, color: T.textMuted, fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>No logged visits yet — statuses set going forward will appear here.</div>
@@ -478,7 +484,6 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
     );
   }
 
-  // ── Day Planner ──────────────────────────────────────────────────────────
   if (dayPlanner) {
     const { dateStr, name } = dayPlanner;
     const dayRoute = ((allDailyRoutes[name] || {})[dateStr] || []);
@@ -502,13 +507,11 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: T.blue }}>{dayRoute.length} stop{dayRoute.length !== 1 ? 's' : ''}</div>
             {dayRoute.length > 0 && (() => {
-              // Build Apple Maps multi-stop directions URL
               const stops = dayRoute.map(p => encodeURIComponent((p.address || '') + (p.city ? ', ' + p.city + ', OK' : ', OK')));
               let mapsUrl;
               if (stops.length === 1) {
                 mapsUrl = `maps://?daddr=${stops[0]}&dirflg=d`;
               } else {
-                // Apple Maps multi-stop: daddr=stop1+to:stop2+to:stop3
                 const chain = stops.join('+to:');
                 mapsUrl = `maps://?daddr=${chain}&dirflg=d`;
               }
@@ -521,7 +524,6 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 24px' }}>
-          {/* Planned stops */}
           {dayRoute.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: T.blue, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Planned Stops</div>
@@ -540,10 +542,8 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
             </div>
           )}
 
-          {/* Add permits (own day only) */}
           {isOwn && (
             <div>
-              {/* Import from route */}
               {myRoute && myRoute.length > 0 && (() => {
                 const importable = myRoute.filter(p => !dayRoute.find(r => r.id === p.id));
                 return importable.length > 0 ? (
@@ -582,7 +582,6 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
     );
   }
 
-  // ── Main Team View ────────────────────────────────────────────────────────
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: T.bg, display: 'flex', flexDirection: 'column', paddingTop: 'env(safe-area-inset-top,0px)', paddingBottom: 'env(safe-area-inset-bottom,0px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 10px', borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
@@ -605,7 +604,6 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 24px' }}>
-        {/* Overlaps */}
         {conflicts.length > 0 && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 8 }}>⚠️ OVERLAPPING BUILDERS</div>
@@ -630,10 +628,8 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
           </div>
         )}
 
-        {/* Per-salesman cards */}
         {teamData.map(({ name, route, activeStatuses, passStatuses }) => (
           <div key={name} style={{ marginBottom: 20, background: T.card, borderRadius: 14, border: `1px solid ${T.cardBorder}`, overflow: 'hidden', boxShadow: T.shadow }}>
-            {/* Salesman header — tappable → profile */}
             <button onClick={() => setProfileUser(name)} style={{ width: '100%', padding: '12px 14px', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', alignItems: 'center', gap: 10, background: name === activeUser ? T.blueLight : T.card, border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
               <div style={{ width: 36, height: 36, borderRadius: '50%', background: name === activeUser ? T.blue : T.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, color: name === activeUser ? '#fff' : T.textSub, flexShrink: 0 }}>{name[0]}</div>
               <div style={{ flex: 1 }}>
@@ -643,7 +639,6 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
               <span style={{ fontSize: 16, color: T.textMuted }}>›</span>
             </button>
 
-            {/* Weekly calendar strip — each day tappable */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
               {weekDays.map((d, i) => {
                 const ds = d.toISOString().slice(0, 10);
@@ -665,7 +660,6 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
               })}
             </div>
 
-            {/* Active statuses summary */}
             {activeStatuses.length > 0 && (
               <div style={{ padding: '10px 14px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: T.textSub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>📋 Active ({activeStatuses.length})</div>
@@ -691,13 +685,15 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
 }
 
 export default function PermitMap() {
-  const [activeUser, setActiveUser] = useState(() => loadSession());  if (!activeUser) return <LoginScreen onLogin={setActiveUser} />;
+  const [activeUser, setActiveUser] = useState(() => loadSession());
+  if (!activeUser) return <LoginScreen onLogin={setActiveUser} />;
   return <PermitMapInner activeUser={activeUser} onLogout={() => { saveSession(null); setActiveUser(null); }} />;
 }
 
 function PermitMapInner({ activeUser, onLogout }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
+  const sidebarRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
   const [currentCity, setCurrentCity] = useState('All');
   const [customOnly, setCustomOnly] = useState(false);
@@ -718,12 +714,26 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDashboard, setShowDashboard] = useState(false);
-  
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [dailyRoutes, setDailyRoutes] = useState(() => loadDailyRoutes(activeUser));
+  const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
+
   const handleSelectBuilder = (builderName) => {
     setSearchQuery(builderName);
   };
-  const [dailyRoutes, setDailyRoutes] = useState(() => loadDailyRoutes(activeUser));
-  const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
+
+  // Click-outside to collapse sidebar
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
+        setSidebarExpanded(false);
+      }
+    }
+    if (sidebarExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [sidebarExpanded]);
 
   // Load permits from Firestore on mount
   useEffect(() => {
@@ -931,6 +941,47 @@ function PermitMapInner({ activeUser, onLogout }) {
 
   const isInRoute = selected ? !!routeList.find(p => p.id === selected.id) : false;
 
+  // Derived active nav state
+  const activeNav = teamView ? 'team' : showDashboard ? 'intel' : showRoutePanel ? 'route' : panelOpen ? 'filters' : 'map';
+
+  const handleNavClick = (item) => {
+    if (item === 'map') {
+      setPanelOpen(false);
+      setShowRoutePanel(false);
+      setSidebarExpanded(false);
+    } else if (item === 'filters') {
+      const opening = !panelOpen;
+      setPanelOpen(opening);
+      setShowRoutePanel(false);
+      setSidebarExpanded(opening);
+    } else if (item === 'route') {
+      const opening = !showRoutePanel;
+      setShowRoutePanel(opening);
+      setPanelOpen(false);
+      setSidebarExpanded(opening);
+    } else if (item === 'intel') {
+      setShowDashboard(true);
+      setSidebarExpanded(false);
+    } else if (item === 'team') {
+      setTeamView(true);
+      setSidebarExpanded(false);
+      setPanelOpen(false);
+      setShowRoutePanel(false);
+    }
+  };
+
+  // Map style icons
+  const styleIcons = { satellite: '🛰', hybrid: '🗺', streets: '🏙' };
+  const styleLabels = { satellite: 'Satellite', hybrid: 'Hybrid', streets: 'Streets' };
+
+  // User initials
+  const initials = activeUser ? activeUser.slice(0, 2).toUpperCase() : '??';
+
+  // Reminders badge (check upcomingReminders from Dashboard - simplified: just show bell icon)
+  const SIDEBAR_WIDTH_COLLAPSED = 64;
+  const SIDEBAR_WIDTH_EXPANDED = 240;
+  const TOP_BAR_HEIGHT = 52;
+
   if (!token) {
     return (
       <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg }}>
@@ -943,342 +994,431 @@ function PermitMapInner({ activeUser, onLogout }) {
   }
 
   return (
-    <div style={{ width: '100%', height: '100vh', position: 'relative', overflow: 'hidden', background: T.bg }}>
+    <div style={{ width: '100%', height: '100vh', position: 'relative', overflow: 'hidden', background: '#0A0A0F', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .nav-item { transition: background 150ms ease, border-color 150ms ease !important; }
+        .nav-item:hover { background: rgba(255,255,255,0.04) !important; }
+        .nav-item.active { background: rgba(0,212,126,0.08) !important; border-left-color: #00D47E !important; }
+        .map-style-btn { transition: background 150ms ease !important; }
+        .map-style-btn:hover { background: rgba(255,255,255,0.08) !important; }
+        .map-style-btn.active { background: rgba(0,212,126,0.1) !important; }
+
+        /* Mobile bottom tab bar */
+        @media (max-width: 767px) {
+          .ist-sidebar { display: none !important; }
+          .ist-topbar { left: 0 !important; }
+          .ist-filter-panel { left: 0 !important; top: ${TOP_BAR_HEIGHT}px !important; width: 100% !important; max-width: 100% !important; border-radius: 0 !important; }
+          .ist-bottom-tabs { display: flex !important; }
+        }
+        @media (min-width: 768px) {
+          .ist-bottom-tabs { display: none !important; }
+        }
+      `}</style>
+
+      {/* Map — full viewport */}
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0 }} />
 
-      {/* Permits loading indicator */}
+      {/* Loading indicator */}
       {permitsLoading && (
         <div style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          zIndex: 50, ...glassStyle(), borderRadius: 16, padding: '18px 28px',
+          zIndex: 50,
+          background: 'rgba(10,10,15,0.9)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16, padding: '18px 28px',
           display: 'flex', alignItems: 'center', gap: 12,
         }}>
-          <div style={{
-            width: 18, height: 18, borderRadius: '50%',
-            border: `3px solid ${T.blue}`, borderTopColor: 'transparent',
-            animation: 'spin 0.8s linear infinite',
-          }} />
-          <span style={{ color: T.text, fontSize: 14, fontWeight: 600 }}>Loading permits…</span>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <div style={{ width: 18, height: 18, borderRadius: '50%', border: '3px solid #00D47E', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+          <span style={{ color: '#F0F0F5', fontSize: 14, fontWeight: 600 }}>Loading permits…</span>
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, padding: '14px 16px 32px', pointerEvents: 'none' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 9, height: 9, borderRadius: '50%', background: T.blue }} />
-              <span style={{ color: T.text, fontSize: 18, fontWeight: 800, letterSpacing: 0.3 }}>IST Intel</span>
-            </div>
-            <div style={{ color: T.textSub, fontSize: 12, marginTop: 2 }}>NE Oklahoma — Nov 2025 through Feb 2026</div>
-          </div>
-          <div style={{ textAlign: 'right', pointerEvents: 'auto' }}>
-            <div style={{ color: T.textMuted, fontSize: 11, marginBottom: 5 }}>
-              <div style={{ fontWeight: 600 }}>{filtered.length} permits</div>
-              <div>{geocoding ? 'Geocoding...' : 'NOW Report Data'}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: T.blue }}>{activeUser}</span>
-              <button onClick={onLogout} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: T.textSub, cursor: 'pointer', fontFamily: 'inherit' }}>Log out</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Map style buttons */}
-      <div style={{ position: 'absolute', top: 'calc(76px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 10, display: 'flex', gap: 5 }}>
-        {Object.keys(STYLES).map(s => (
-          <button key={s} onClick={() => changeStyle(s)} style={{
-            padding: '8px 14px',
-            borderRadius: 8,
-            fontSize: 12,
-            cursor: 'pointer',
-            fontWeight: 600,
-            border: mapStyle === s ? `1.5px solid ${T.blue}` : '1px solid rgba(255,255,255,0.6)',
-            background: mapStyle === s ? 'rgba(37, 99, 235, 0.2)' : 'rgba(255,255,255,0.4)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            color: mapStyle === s ? T.blue : T.textSub,
-            fontFamily: 'inherit',
-            textTransform: 'capitalize',
-          }}>{s}</button>
-        ))}
-      </div>
-
-      {/* Sidebar toggle */}
-      <button onClick={() => { setPanelOpen(prev => !prev); setShowRoutePanel(false); }} style={{
-        position: 'absolute',
-        top: 'calc(80px + env(safe-area-inset-top, 0px))',
-        left: panelOpen ? 256 : 12,
-        zIndex: 20,
-        width: 42,
-        height: 42,
-        borderRadius: 10,
-        ...glassStyle(0.85),
-        color: T.text,
-        cursor: 'pointer',
+      {/* ── Top Bar ─────────────────────────────────────────────────────────── */}
+      <div className="ist-topbar" style={{
+        position: 'fixed',
+        top: 0,
+        left: SIDEBAR_WIDTH_COLLAPSED,
+        right: 0,
+        height: TOP_BAR_HEIGHT,
+        zIndex: 15,
+        background: D.topbar,
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: `1px solid ${D.border}`,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 18,
-        transition: 'left 0.3s ease',
-      }}>{panelOpen ? '◀' : '☰'}</button>
-
-      {/* Route list toggle button */}
-      {routeList.length > 0 && !selected && (
-        <button onClick={() => { setShowRoutePanel(prev => !prev); setShowTeamPanel(false); setPanelOpen(false); }} style={{
-          position: 'absolute', top: 'calc(228px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
-          padding: '10px 16px', borderRadius: 10,
-          background: T.blue, border: 'none',
-          color: '#fff', cursor: 'pointer', boxShadow: T.shadow,
-          fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
-        }}>🗺 Route ({routeList.length})</button>
-      )}
-
-      {/* Dashboard button */}
-      {!selected && (
-        <button onClick={() => setShowDashboard(true)} style={{
-          position: 'absolute', top: 'calc(132px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
-          padding: '10px 16px', borderRadius: 10,
-          background: 'rgba(255,255,255,0.4)',
-          border: '1px solid rgba(255,255,255,0.6)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          color: T.text,
-          cursor: 'pointer',
-          fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
-        }}>📊 Intel</button>
-      )}
-
-      {/* Team button */}
-      {!selected && (
-        <button onClick={() => { setTeamView(true); setShowRoutePanel(false); setShowTeamPanel(false); setPanelOpen(false); }} style={{
-          position: 'absolute', top: 'calc(180px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 20,
-          padding: '10px 16px', borderRadius: 10,
-          background: 'rgba(255,255,255,0.4)',
-          border: '1px solid rgba(255,255,255,0.6)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          color: T.text,
-          cursor: 'pointer',
-          fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
-        }}>👥 Team</button>
-      )}
-
-      {/* Team Full Page */}
-      {teamView && <TeamPage activeUser={activeUser} onClose={() => setTeamView(false)} permits={permits} dailyRoutes={dailyRoutes} addToDailyRoute={addToDailyRoute} removeFromDailyRoute={removeFromDailyRoute} myRoute={routeList} />}
-
-      {/* Team Panel (legacy, unused) */}
-      {showTeamPanel && !selected && (() => {
-        const teamData = SALESMEN.map(name => ({
-          name,
-          statuses: loadStatuses(name),
-          route: loadRoute(name),
-        }));
-
-        // Build builder → [{ user, permitId, address }] map
-        const builderMap = {};
-        teamData.forEach(({ name, statuses, route }) => {
-          // From statuses (called/quoted/won)
-          Object.entries(statuses).forEach(([id, status]) => {
-            if (status === 'pass') return;
-            const permit = permits.find(p => String(p.id) === String(id));
-            if (!permit) return;
-            const key = permit.builder.toLowerCase().trim();
-            if (!builderMap[key]) builderMap[key] = [];
-            builderMap[key].push({ user: name, permitId: id, address: permit.address, status, builder: permit.builder });
-          });
-          // From route
-          route.forEach(permit => {
-            const key = permit.builder.toLowerCase().trim();
-            if (!builderMap[key]) builderMap[key] = [];
-            // Avoid dupes
-            if (!builderMap[key].find(e => e.user === name && e.permitId === String(permit.id))) {
-              builderMap[key].push({ user: name, permitId: String(permit.id), address: permit.address, status: 'route', builder: permit.builder });
-            }
-          });
-        });
-
-        // Builders with multiple users = conflict
-        const conflicts = Object.entries(builderMap).filter(([, entries]) => {
-          const users = [...new Set(entries.map(e => e.user))];
-          return users.length > 1;
-        });
-
-        const statusColors = { called: '#f59e0b', quoted: '#8b5cf6', won: '#16a34a', route: T.blue };
-        const statusLabels = { called: 'Called', quoted: 'Quoted', won: 'Won', route: 'On Route' };
-
-        return (
-          <div style={{
-            position: 'absolute', top: 'calc(76px + env(safe-area-inset-top, 0px))', right: 12, zIndex: 30,
-            width: 300, maxHeight: 'calc(100vh - 160px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))',
-            background: T.card, borderRadius: 16, boxShadow: T.shadowLg,
-            border: `1px solid ${T.cardBorder}`, overflow: 'hidden', display: 'flex', flexDirection: 'column',
-          }}>
-            <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 800, fontSize: 16, color: T.text }}>👥 Team Overview</span>
-              <button onClick={() => setShowTeamPanel(false)} style={ghostBtn}>✕</button>
-            </div>
-            <div style={{ overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-              {/* Conflicts */}
-              {conflicts.length > 0 && (
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    ⚠️ OVERLAP — {conflicts.length} builder{conflicts.length > 1 ? 's' : ''}
-                  </div>
-                  {conflicts.map(([key, entries]) => {
-                    const builderName = entries[0].builder;
-                    const byUser = {};
-                    entries.forEach(e => { if (!byUser[e.user]) byUser[e.user] = []; byUser[e.user].push(e); });
-                    return (
-                      <div key={key} style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: '#991b1b', marginBottom: 6 }}>{builderName}</div>
-                        {Object.entries(byUser).map(([user, items]) => (
-                          <div key={user} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: T.blue, minWidth: 52 }}>{user}</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                              {items.map((e, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <span style={{ fontSize: 10, fontWeight: 700, color: statusColors[e.status] || T.textSub, background: `${statusColors[e.status]}20`, padding: '1px 5px', borderRadius: 4 }}>{statusLabels[e.status] || e.status}</span>
-                                  <span style={{ fontSize: 11, color: T.textSub }}>{e.address}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Per-salesman summary */}
-              {teamData.map(({ name, statuses, route }) => {
-                const activeStatuses = Object.entries(statuses).filter(([, s]) => s !== 'pass');
-                return (
-                  <div key={name}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: name === activeUser ? T.blue : T.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {name} {name === activeUser && <span style={{ fontSize: 10, color: T.blue, fontWeight: 600 }}>(you)</span>}
-                    </div>
-                    {route.length === 0 && activeStatuses.length === 0 ? (
-                      <div style={{ fontSize: 12, color: T.textMuted, fontStyle: 'italic' }}>No activity yet</div>
-                    ) : (
-                      <>
-                        {route.length > 0 && (
-                          <div style={{ marginBottom: 8 }}>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: T.textSub, marginBottom: 4 }}>🗺 Route ({route.length})</div>
-                            {route.map(p => (
-                              <div key={p.id} style={{ fontSize: 12, color: T.text, padding: '3px 0', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontWeight: 600 }}>{p.builder}</span>
-                                <span style={{ color: T.textMuted }}>{p.address}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {activeStatuses.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: T.textSub, marginBottom: 4 }}>📋 Working ({activeStatuses.length})</div>
-                            {activeStatuses.map(([id, status]) => {
-                              const permit = permits.find(p => String(p.id) === String(id));
-                              if (!permit) return null;
-                              return (
-                                <div key={id} style={{ fontSize: 12, color: T.text, padding: '3px 0', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span style={{ fontWeight: 600 }}>{permit.builder}</span>
-                                  <span style={{ fontSize: 10, fontWeight: 700, color: statusColors[status], background: `${statusColors[status]}20`, padding: '1px 6px', borderRadius: 4 }}>{statusLabels[status]}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Sidebar */}
-      <div style={{ position: 'absolute', top: 'calc(76px + env(safe-area-inset-top, 0px))', left: panelOpen ? 12 : -260, zIndex: 10, width: 238, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 120px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))', overflowY: 'auto', transition: 'left 0.3s ease', paddingBottom: 16 }}>
-
-        {/* City filter */}
-        <div style={{...glassStyle(0.8), borderRadius: 12, padding: 14}}>
-          <div style={{fontSize: 11, color: T.textMuted, letterSpacing: 1, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase'}}>City</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {CITIES.map(c => (
-              <button key={c} onClick={() => flyToCity(c)} style={filterBtn(currentCity === c)}>{c}</button>
-            ))}
-          </div>
+        paddingLeft: 20,
+        paddingRight: 16,
+        gap: 12,
+      }}>
+        {/* Center wordmark */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase' }}>
+            <span style={{ color: '#00D47E' }}>IST</span>
+            <span style={{ color: D.textSub }}> INTEL</span>
+          </span>
         </div>
 
-        {/* Month filter */}
-        <div style={{...glassStyle(0.8), borderRadius: 12, padding: 14}}>
-          <div style={{fontSize: 11, color: T.textMuted, letterSpacing: 1, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase'}}>Month</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {availableMonths.map(m => (
-              <button key={m} onClick={() => { setCurrentMonth(m); closeDetail(); }} style={filterBtn(currentMonth === m)}>{m}</button>
-            ))}
-          </div>
-        </div>
-
-        {/* Custom only toggle */}
-        <div style={{...glassStyle(0.8), borderRadius: 12, padding: 14}}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-            <input type="checkbox" checked={customOnly} onChange={e => { setCustomOnly(e.target.checked); closeDetail(); }} style={{ accentColor: T.blue, width: 18, height: 18 }} />
-            <span style={{ fontSize: 14, color: T.text, fontWeight: 500 }}>Custom builders only</span>
-          </label>
-        </div>
-
-        {/* Legend */}
-        <div style={{...glassStyle(0.8), borderRadius: 12, padding: 14}}>
-          <div style={{fontSize: 11, color: T.textMuted, letterSpacing: 1, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase'}}>Search & Legend</div>
-          <input
-            type="text"
-            placeholder="Filter builders…"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+        {/* Right: salesman name + geocoding indicator + logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {geocoding && (
+            <span style={{ fontSize: 11, color: D.textMuted, whiteSpace: 'nowrap' }}>Geocoding…</span>
+          )}
+          <span style={{ fontSize: 13, fontWeight: 600, color: D.textSub, whiteSpace: 'nowrap' }}>{activeUser}</span>
+          <span style={{ fontSize: 12, color: D.textMuted }}>
+            {filtered.length} permits
+          </span>
+          <button
+            onClick={onLogout}
+            title="Log out"
             style={{
-              width: '100%',
-              padding: '8px 10px',
-              border: `1px solid ${T.cardBorder}`,
-              borderRadius: 6,
-              fontSize: 12,
-              fontFamily: 'inherit',
-              marginBottom: 12,
-              boxSizing: 'border-box',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 7,
+              color: D.textSub,
+              cursor: 'pointer',
+              padding: '5px 9px',
+              fontSize: 13,
+              lineHeight: 1,
             }}
-          />
-          <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 10 }}>
-            {permits.filter(p => !searchQuery.trim() || (p.builder || '').toLowerCase().includes(searchQuery.toLowerCase())).length} of {permits.length} permits
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: T.blue, border: '2px solid #fff', boxShadow: '0 0 0 1px #ddd' }} />
-            <span style={{ fontSize: 13, color: T.text }}>Custom / Indie Builder</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: T.orange, border: '2px solid #fff', boxShadow: '0 0 0 1px #ddd' }} />
-            <span style={{ fontSize: 13, color: T.text }}>Production Builder</span>
-          </div>
-          <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6 }}>Circle size = permit value</div>
-          {STATUSES.map(s => (
-            <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: T.textSub }}>{s.label}</span>
-            </div>
-          ))}
-          <button onClick={() => { clearGeocodeCache(); window.location.reload(); }} style={{
-            marginTop: 10, width: '100%', padding: '7px 0', borderRadius: 6,
-            background: T.bg, border: `1px solid ${T.cardBorder}`,
-            color: T.textMuted, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-          }}>↺ Re-geocode addresses</button>
+          >⏻</button>
         </div>
       </div>
 
-      {/* Route panel */}
+      {/* ── Left Sidebar ────────────────────────────────────────────────────── */}
+      <div
+        ref={sidebarRef}
+        className="ist-sidebar"
+        style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED,
+          zIndex: 20,
+          background: D.sidebar,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderRight: `1px solid ${D.border}`,
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'width 200ms ease',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Logo area */}
+        <div style={{
+          height: TOP_BAR_HEIGHT,
+          display: 'flex',
+          alignItems: 'center',
+          paddingLeft: sidebarExpanded ? 18 : 0,
+          justifyContent: sidebarExpanded ? 'flex-start' : 'center',
+          borderBottom: `1px solid ${D.border}`,
+          flexShrink: 0,
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+        }}>
+          {sidebarExpanded ? (
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#00D47E', lineHeight: 1, letterSpacing: 1 }}>IST</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: D.textSub, letterSpacing: 3, textTransform: 'uppercase', marginTop: 1 }}>INTEL</div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 14, fontWeight: 900, color: '#00D47E', letterSpacing: 0.5 }}>IST</div>
+          )}
+        </div>
+
+        {/* Nav items */}
+        <div style={{ flex: 1, paddingTop: 8, paddingBottom: 8 }}>
+          {[
+            { key: 'map',     icon: '🗺️', label: 'Map' },
+            { key: 'filters', icon: '≡',  label: 'Filters' },
+            { key: 'route',   icon: '📍', label: 'Route' },
+            { key: 'intel',   icon: '📊', label: 'Intel' },
+            { key: 'team',    icon: '👥', label: 'Team' },
+          ].map(({ key, icon, label }) => {
+            const isActive = activeNav === key;
+            const showBadge = key === 'route' && routeList.length > 0;
+            return (
+              <button
+                key={key}
+                onClick={() => handleNavClick(key)}
+                title={!sidebarExpanded ? label : undefined}
+                className={`nav-item${isActive ? ' active' : ''}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  width: '100%',
+                  height: 48,
+                  padding: '0 0 0 0',
+                  paddingLeft: sidebarExpanded ? 18 : 0,
+                  justifyContent: sidebarExpanded ? 'flex-start' : 'center',
+                  background: isActive ? D.accentBg : 'transparent',
+                  border: 'none',
+                  borderLeft: isActive ? `3px solid #00D47E` : '3px solid transparent',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  position: 'relative',
+                }}
+              >
+                <span style={{ fontSize: key === 'filters' ? 20 : 16, flexShrink: 0, lineHeight: 1 }}>{icon}</span>
+                {sidebarExpanded && (
+                  <span style={{
+                    fontSize: 13,
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? '#00D47E' : D.textSub,
+                    opacity: sidebarExpanded ? 1 : 0,
+                    transition: 'opacity 150ms ease',
+                  }}>{label}</span>
+                )}
+                {showBadge && (
+                  <span style={{
+                    position: sidebarExpanded ? 'static' : 'absolute',
+                    top: sidebarExpanded ? undefined : 8,
+                    right: sidebarExpanded ? undefined : 8,
+                    marginLeft: sidebarExpanded ? 'auto' : undefined,
+                    marginRight: sidebarExpanded ? 16 : undefined,
+                    background: '#00D47E',
+                    color: '#0A0A0F',
+                    fontSize: 10,
+                    fontWeight: 800,
+                    borderRadius: 10,
+                    padding: '1px 6px',
+                    minWidth: 18,
+                    textAlign: 'center',
+                    lineHeight: '16px',
+                  }}>{routeList.length}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Bottom: map style + avatar + logout */}
+        <div style={{ borderTop: `1px solid ${D.border}`, paddingTop: 8, paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))', flexShrink: 0 }}>
+          {/* Map style switcher */}
+          {Object.keys(STYLES).map(s => (
+            <button
+              key={s}
+              onClick={() => changeStyle(s)}
+              title={styleLabels[s]}
+              className={`map-style-btn${mapStyle === s ? ' active' : ''}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                width: '100%',
+                height: 36,
+                paddingLeft: sidebarExpanded ? 18 : 0,
+                justifyContent: sidebarExpanded ? 'flex-start' : 'center',
+                background: mapStyle === s ? D.accentBg : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ fontSize: 14, flexShrink: 0 }}>{styleIcons[s]}</span>
+              {sidebarExpanded && (
+                <span style={{ fontSize: 12, color: mapStyle === s ? '#00D47E' : D.textMuted, fontWeight: mapStyle === s ? 700 : 400 }}>{styleLabels[s]}</span>
+              )}
+            </button>
+          ))}
+
+          <div style={{ height: 1, background: D.border, margin: '8px 0' }} />
+
+          {/* Avatar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            height: 44,
+            paddingLeft: sidebarExpanded ? 14 : 0,
+            justifyContent: sidebarExpanded ? 'flex-start' : 'center',
+            overflow: 'hidden',
+          }}>
+            <div
+              title={activeUser}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                background: '#00D47E',
+                color: '#0A0A0F',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                fontWeight: 900,
+                flexShrink: 0,
+                letterSpacing: 0.5,
+              }}
+            >{initials}</div>
+            {sidebarExpanded && (
+              <span style={{ fontSize: 13, fontWeight: 600, color: D.textSub, whiteSpace: 'nowrap' }}>{activeUser}</span>
+            )}
+          </div>
+
+          {/* Logout */}
+          <button
+            onClick={onLogout}
+            title="Log out"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              width: '100%',
+              height: 36,
+              paddingLeft: sidebarExpanded ? 18 : 0,
+              justifyContent: sidebarExpanded ? 'flex-start' : 'center',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span style={{ fontSize: 14, flexShrink: 0, color: D.textMuted }}>⏻</span>
+            {sidebarExpanded && <span style={{ fontSize: 12, color: D.textMuted }}>Log out</span>}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Filter Panel (slides in beside sidebar) ─────────────────────────── */}
+      {panelOpen && (
+        <div
+          className="ist-filter-panel"
+          style={{
+            position: 'fixed',
+            top: TOP_BAR_HEIGHT,
+            left: sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED,
+            width: 248,
+            bottom: 0,
+            zIndex: 10,
+            background: 'rgba(10,10,15,0.88)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRight: `1px solid ${D.border}`,
+            overflowY: 'auto',
+            paddingBottom: 24,
+            transition: 'left 200ms ease',
+          }}
+        >
+          {/* City filter */}
+          <div style={{ padding: '14px 14px 10px' }}>
+            <div style={{ fontSize: 10, color: D.textMuted, letterSpacing: 2, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase' }}>City</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {CITIES.map(c => (
+                <button key={c} onClick={() => flyToCity(c)} style={filterBtn(currentCity === c)}>{c}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: D.border }} />
+
+          {/* Month filter */}
+          <div style={{ padding: '14px 14px 10px' }}>
+            <div style={{ fontSize: 10, color: D.textMuted, letterSpacing: 2, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase' }}>Month</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {availableMonths.map(m => (
+                <button key={m} onClick={() => { setCurrentMonth(m); closeDetail(); }} style={filterBtn(currentMonth === m)}>{m}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: D.border }} />
+
+          {/* Custom only toggle */}
+          <div style={{ padding: '14px 14px 10px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <input type="checkbox" checked={customOnly} onChange={e => { setCustomOnly(e.target.checked); closeDetail(); }} style={{ accentColor: '#00D47E', width: 16, height: 16 }} />
+              <span style={{ fontSize: 13, color: D.text, fontWeight: 500 }}>Custom builders only</span>
+            </label>
+          </div>
+
+          <div style={{ height: 1, background: D.border }} />
+
+          {/* Search + Legend */}
+          <div style={{ padding: '14px 14px 10px' }}>
+            <div style={{ fontSize: 10, color: D.textMuted, letterSpacing: 2, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase' }}>Search & Legend</div>
+            <input
+              type="text"
+              placeholder="Filter builders…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                border: `1px solid rgba(255,255,255,0.1)`,
+                borderRadius: 8,
+                fontSize: 12,
+                fontFamily: 'inherit',
+                marginBottom: 10,
+                boxSizing: 'border-box',
+                background: 'rgba(255,255,255,0.05)',
+                color: D.text,
+                outline: 'none',
+              }}
+            />
+            <div style={{ fontSize: 11, color: D.textMuted, marginBottom: 10 }}>
+              {permits.filter(p => !searchQuery.trim() || (p.builder || '').toLowerCase().includes(searchQuery.toLowerCase())).length} of {permits.length} permits
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb', border: '2px solid rgba(255,255,255,0.3)', flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: D.textSub }}>Custom / Indie Builder</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ea580c', border: '2px solid rgba(255,255,255,0.3)', flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: D.textSub }}>Production Builder</span>
+            </div>
+            <div style={{ fontSize: 11, color: D.textMuted, marginBottom: 6 }}>Circle size = permit value</div>
+            {STATUSES.map(s => (
+              <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: D.textMuted }}>{s.label}</span>
+              </div>
+            ))}
+            <button onClick={() => { clearGeocodeCache(); window.location.reload(); }} style={{
+              marginTop: 10, width: '100%', padding: '7px 0', borderRadius: 8,
+              background: 'rgba(255,255,255,0.04)', border: `1px solid rgba(255,255,255,0.08)`,
+              color: D.textMuted, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+            }}>↺ Re-geocode addresses</button>
+
+            {/* Map style switcher (shown in filter panel on mobile) */}
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 10, color: D.textMuted, letterSpacing: 2, fontWeight: 700, marginBottom: 8, textTransform: 'uppercase' }}>Map Style</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {Object.keys(STYLES).map(s => (
+                  <button key={s} onClick={() => changeStyle(s)} style={{
+                    flex: 1,
+                    padding: '8px 0',
+                    borderRadius: 8,
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    fontWeight: mapStyle === s ? 700 : 500,
+                    border: mapStyle === s ? `1.5px solid #00D47E` : `1px solid rgba(255,255,255,0.1)`,
+                    background: mapStyle === s ? D.accentBg : 'rgba(255,255,255,0.04)',
+                    color: mapStyle === s ? '#00D47E' : D.textSub,
+                    fontFamily: 'inherit',
+                    textTransform: 'capitalize',
+                  }}>{s}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Route panel (bottom sheet) ───────────────────────────────────────── */}
       {showRoutePanel && !selected && (
         <div style={{
           position: 'fixed',
@@ -1286,38 +1426,40 @@ function PermitMapInner({ activeUser, onLogout }) {
           left: 0,
           right: 0,
           zIndex: 25,
-          ...glassStyle(0.95),
+          background: 'rgba(10,10,15,0.96)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: `1px solid rgba(255,255,255,0.08)`,
           borderRadius: '20px 20px 0 0',
-          borderTop: '1px solid rgba(255,255,255,0.6)',
           padding: '18px 18px',
           paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
           maxHeight: '65vh',
           overflowY: 'auto',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ color: T.text, fontWeight: 800, fontSize: 17 }}>🗺 Route — {routeList.length} stop{routeList.length !== 1 ? 's' : ''}</span>
+            <span style={{ color: D.text, fontWeight: 800, fontSize: 17 }}>📍 Route — {routeList.length} stop{routeList.length !== 1 ? 's' : ''}</span>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={clearRoute} style={{ ...ghostBtn, color: T.orange }}>Clear all</button>
-              <button onClick={() => setShowRoutePanel(false)} style={ghostBtn}>✕</button>
+              <button onClick={clearRoute} style={{ ...darkGhostBtn, color: '#f59e0b' }}>Clear all</button>
+              <button onClick={() => setShowRoutePanel(false)} style={darkGhostBtn}>✕</button>
             </div>
           </div>
           {routeList.map((p, i) => (
-            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, padding: '10px 12px', background: T.bg, borderRadius: 10 }}>
-              <span style={{ color: T.blue, fontWeight: 800, fontSize: 15, minWidth: 22 }}>{i + 1}.</span>
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10 }}>
+              <span style={{ color: '#00D47E', fontWeight: 800, fontSize: 15, minWidth: 22 }}>{i + 1}.</span>
               <div
                 onClick={() => { selectPermit(p); setShowRoutePanel(false); }}
                 style={{ flex: 1, cursor: 'pointer' }}
               >
-                <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{p.builder}</div>
-                <div style={{ fontSize: 13, color: T.textSub }}>{p.address}, {p.city}</div>
-                {p.phone && <div style={{ fontSize: 13, color: T.blue, marginTop: 2 }}>📞 {p.phone}</div>}
+                <div style={{ fontSize: 15, fontWeight: 700, color: D.text }}>{p.builder}</div>
+                <div style={{ fontSize: 13, color: D.textSub }}>{p.address}, {p.city}</div>
+                {p.phone && <div style={{ fontSize: 13, color: '#00D47E', marginTop: 2 }}>📞 {p.phone}</div>}
               </div>
-              <button onClick={() => removeFromRoute(p.id)} style={{ background: 'none', border: 'none', color: T.textMuted, cursor: 'pointer', fontSize: 18, padding: '4px 6px' }}>✕</button>
+              <button onClick={() => removeFromRoute(p.id)} style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', fontSize: 18, padding: '4px 6px' }}>✕</button>
             </div>
           ))}
           <button onClick={openAppleMapsRoute} style={{
             width: '100%', padding: '15px 0', borderRadius: 12, cursor: 'pointer',
-            background: T.blue, border: 'none', color: '#fff',
+            background: '#00D47E', border: 'none', color: '#0A0A0F',
             fontSize: 16, fontWeight: 800, fontFamily: 'inherit', marginTop: 6,
           }}>
             🗺 Open Route in Apple Maps
@@ -1325,7 +1467,7 @@ function PermitMapInner({ activeUser, onLogout }) {
         </div>
       )}
 
-      {/* Detail card */}
+      {/* ── Detail card ─────────────────────────────────────────────────────── */}
       {selected && (
         <div
           onTouchStart={e => { e.currentTarget._swipeY = e.touches[0].clientY; }}
@@ -1348,26 +1490,19 @@ function PermitMapInner({ activeUser, onLogout }) {
             maxHeight: '35vh',
             overflowY: 'auto',
           }}>
-          {/* Drag handle */}
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 10px' }} />
 
-          {/* Header — compact */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: T.text, lineHeight: 1.1 }}>{selected.builder}</div>
-              <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>
-                {selected.address}
-              </div>
+              <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>{selected.address}</div>
               {selected.week && (
-                <div style={{ fontSize: 11, color: T.textSub, marginTop: 4, fontWeight: 600 }}>
-                  Week: {selected.week}
-                </div>
+                <div style={{ fontSize: 11, color: T.textSub, marginTop: 4, fontWeight: 600 }}>Week: {selected.week}</div>
               )}
             </div>
             <button onClick={closeDetail} style={{ ...ghostBtn, marginLeft: 8, flexShrink: 0, padding: '4px 8px' }}>✕</button>
           </div>
 
-          {/* Stats — compact */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 8 }}>
             {[
               { l: 'Value', v: Number(selected.value) > 0 ? fmt(Number(selected.value)) : 'N/A' },
@@ -1380,7 +1515,6 @@ function PermitMapInner({ activeUser, onLogout }) {
             ))}
           </div>
 
-          {/* Phone — tap to call */}
           {selected.phone && selected.phone !== 'N/A' && (
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 4 }}>Call</div>
@@ -1396,7 +1530,6 @@ function PermitMapInner({ activeUser, onLogout }) {
             </div>
           )}
 
-          {/* Action buttons */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 0 }}>
             <a href={`maps://maps.apple.com/?q=${encodeURIComponent(selected.address + ', ' + selected.city + ', OK')}&ll=${selected.lat},${selected.lng}`}
               target="_blank" rel="noopener noreferrer" style={{
@@ -1420,19 +1553,14 @@ function PermitMapInner({ activeUser, onLogout }) {
             <button onClick={() => { setSelectedPermit(selected); setShowVisitModal(true); }} style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
               padding: '10px 0', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
-              background: T.blueLight,
-              border: `1.5px solid ${T.blueBorder}`,
-              color: T.blue,
+              background: T.blueLight, border: `1.5px solid ${T.blueBorder}`, color: T.blue,
               fontSize: 13, fontWeight: 700,
             }}>
               📝 Visit
             </button>
           </div>
 
-          {/* Map Route button — hidden in compact view */}
-
-          {/* Notes — collapsed in compact view */}
-          <details style={{ marginBottom: 8 }}>
+          <details style={{ marginTop: 8, marginBottom: 8 }}>
             <summary style={{ fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, cursor: 'pointer' }}>Notes</summary>
             <textarea
               value={noteText || notes[selected.id] || ''}
@@ -1449,7 +1577,6 @@ function PermitMapInner({ activeUser, onLogout }) {
             />
           </details>
 
-          {/* Status tags — collapsed */}
           <details style={{ marginBottom: 8 }}>
             <summary style={{ fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, cursor: 'pointer' }}>Status</summary>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
@@ -1468,112 +1595,157 @@ function PermitMapInner({ activeUser, onLogout }) {
               })}
             </div>
           </details>
-
-          {/* Builder type badge — hidden in compact view */}
         </div>
       )}
 
-      {/* Active Builder Filter Card */}
-      {searchQuery.trim() && (
-        (() => {
-          const activeBuilder = permits.find(p => (p.builder || '').toLowerCase() === searchQuery.toLowerCase());
-          if (!activeBuilder) return null;
-          return (
-            <div
-              style={{
-                position: 'fixed',
-                top: 'calc(135px + env(safe-area-inset-top, 0px))',
-                left: 12,
-                zIndex: 25,
-                maxWidth: 280,
-                ...glassStyle(0.9),
-                borderRadius: 12,
-                padding: 14,
-                borderLeft: `4px solid ${T.blue}`,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>
-                    Filtering by
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: T.blue, marginTop: 4 }}>
-                    {activeBuilder.builder}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSearchQuery('')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: 20,
-                    color: T.textMuted,
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                  title="Clear filter"
-                >
-                  ✕
-                </button>
+      {/* ── Active Builder Filter Card ───────────────────────────────────────── */}
+      {searchQuery.trim() && (() => {
+        const activeBuilder = permits.find(p => (p.builder || '').toLowerCase() === searchQuery.toLowerCase());
+        if (!activeBuilder) return null;
+        return (
+          <div style={{
+            position: 'fixed',
+            top: TOP_BAR_HEIGHT + 12,
+            left: (panelOpen ? (sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED) + 248 : (sidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED)) + 12,
+            zIndex: 25,
+            maxWidth: 280,
+            background: 'rgba(10,10,15,0.9)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderLeft: '4px solid #00D47E',
+            borderRadius: 12,
+            padding: 14,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: D.text }}>Filtering by</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#00D47E', marginTop: 4 }}>{activeBuilder.builder}</div>
               </div>
-              {activeBuilder.contact && (
-                <div style={{ fontSize: 12, color: T.textSub, marginBottom: 6 }}>
-                  <strong>Contact:</strong> {activeBuilder.contact}
-                </div>
-              )}
-              {activeBuilder.phone && (
-                <div style={{ fontSize: 12, color: T.blue, fontWeight: 600 }}>
-                  📞 {activeBuilder.phone}
-                </div>
-              )}
-              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 8 }}>
-                Showing {filtered.length} permit{filtered.length !== 1 ? 's' : ''}
-              </div>
+              <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', fontSize: 20, color: D.textMuted, cursor: 'pointer', padding: 0 }} title="Clear filter">✕</button>
             </div>
-          );
-        })()
-      )}
+            {activeBuilder.contact && (
+              <div style={{ fontSize: 12, color: D.textSub, marginBottom: 6 }}><strong style={{ color: D.textMuted }}>Contact:</strong> {activeBuilder.contact}</div>
+            )}
+            {activeBuilder.phone && (
+              <div style={{ fontSize: 12, color: '#00D47E', fontWeight: 600 }}>📞 {activeBuilder.phone}</div>
+            )}
+            <div style={{ fontSize: 11, color: D.textMuted, marginTop: 8 }}>
+              Showing {filtered.length} permit{filtered.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+        );
+      })()}
 
-      {/* Visit Modal */}
-      {showVisitModal && selectedPermit && (
-        <VisitModal 
-          permit={selectedPermit}
-          salesman={activeUser}
-          onClose={() => {
-            setShowVisitModal(false);
-            setSelectedPermit(null);
-          }}
+      {/* ── Team Full Page ───────────────────────────────────────────────────── */}
+      {teamView && (
+        <TeamPage
+          activeUser={activeUser}
+          onClose={() => setTeamView(false)}
+          permits={permits}
+          dailyRoutes={dailyRoutes}
+          addToDailyRoute={addToDailyRoute}
+          removeFromDailyRoute={removeFromDailyRoute}
+          myRoute={routeList}
         />
       )}
 
-      {/* Dashboard */}
+      {/* ── Visit Modal ──────────────────────────────────────────────────────── */}
+      {showVisitModal && selectedPermit && (
+        <VisitModal
+          permit={selectedPermit}
+          salesman={activeUser}
+          onClose={() => { setShowVisitModal(false); setSelectedPermit(null); }}
+        />
+      )}
+
+      {/* ── Dashboard ────────────────────────────────────────────────────────── */}
       {showDashboard && (
         <Dashboard
           salesman={activeUser}
           permits={permits}
-          onClose={() => setShowDashboard(false)}
+          onClose={() => { setShowDashboard(false); }}
           onSelectBuilder={handleSelectBuilder}
         />
       )}
+
+      {/* ── Mobile Bottom Tab Bar ────────────────────────────────────────────── */}
+      <div
+        className="ist-bottom-tabs"
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 64,
+          zIndex: 20,
+          background: 'rgba(10,10,15,0.95)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          alignItems: 'stretch',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
+      >
+        {[
+          { key: 'map',     icon: '🗺️', label: 'Map' },
+          { key: 'filters', icon: '≡',  label: 'Filters' },
+          { key: 'route',   icon: '📍', label: 'Route' },
+          { key: 'intel',   icon: '📊', label: 'Intel' },
+          { key: 'team',    icon: '👥', label: 'Team' },
+        ].map(({ key, icon, label }) => {
+          const isActive = activeNav === key;
+          const showBadge = key === 'route' && routeList.length > 0;
+          return (
+            <button
+              key={key}
+              onClick={() => handleNavClick(key)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 2,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                position: 'relative',
+              }}
+            >
+              <span style={{ fontSize: 18, lineHeight: 1, color: isActive ? '#00D47E' : D.textSub }}>{icon}</span>
+              <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 500, color: isActive ? '#00D47E' : D.textMuted }}>{label}</span>
+              {showBadge && (
+                <span style={{
+                  position: 'absolute', top: 4, right: '50%', marginRight: -18,
+                  background: '#00D47E', color: '#0A0A0F',
+                  fontSize: 9, fontWeight: 800, borderRadius: 8,
+                  padding: '1px 5px', minWidth: 16, textAlign: 'center',
+                }}>{routeList.length}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 // ─── Style helpers ─────────────────────────────────────────────────────────────
-// ─── Glass-themed button and card helpers ─────────────────────────────────────
 const filterBtn = (active) => ({
-  padding: '6px 12px',
-  borderRadius: 8,
-  fontSize: 13,
+  padding: '5px 10px',
+  borderRadius: 7,
+  fontSize: 12,
   cursor: 'pointer',
   fontWeight: active ? 700 : 500,
-  border: active ? `1.5px solid ${T.blue}` : `1px solid rgba(255,255,255,0.6)`,
-  background: active ? 'rgba(37, 99, 235, 0.2)' : 'rgba(255,255,255,0.4)',
-  color: active ? T.blue : T.textSub,
+  border: active ? `1.5px solid #00D47E` : `1px solid rgba(255,255,255,0.1)`,
+  background: active ? 'rgba(0,212,126,0.12)' : 'rgba(255,255,255,0.05)',
+  color: active ? '#00D47E' : 'rgba(240,240,245,0.6)',
   fontFamily: 'inherit',
-  backdropFilter: 'blur(10px)',
-  transition: 'all 0.2s',
+  transition: 'all 0.15s',
 });
+
 const ghostBtn = {
   background: 'rgba(255,255,255,0.3)',
   border: '1px solid rgba(255,255,255,0.6)',
@@ -1584,5 +1756,17 @@ const ghostBtn = {
   fontSize: 13,
   fontFamily: 'inherit',
   backdropFilter: 'blur(10px)',
+  transition: 'all 0.2s',
+};
+
+const darkGhostBtn = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: 'rgba(240,240,245,0.6)',
+  cursor: 'pointer',
+  borderRadius: 8,
+  padding: '6px 12px',
+  fontSize: 13,
+  fontFamily: 'inherit',
   transition: 'all 0.2s',
 };
