@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { PERMITS, CITIES, CITY_COORDS } from '../../lib/permits';
+import { CITIES, CITY_COORDS } from '../../lib/permits';
+import { db } from '../../lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import { geocodePermits, applyGeocodedCoords, clearGeocodeCache } from '../../lib/geocode';
 import VisitModal from './VisitModal';
 import Dashboard from './Dashboard';
@@ -395,7 +397,7 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
   teamData.forEach(({ name, statuses, route }) => {
     Object.entries(statuses).forEach(([id, status]) => {
       if (status === 'pass') return;
-      const p = PERMITS.find(p => String(p.id) === String(id)); if (!p) return;
+      const p = permits.find(p => String(p.id) === String(id)); if (!p) return;
       const key = p.builder.toLowerCase().trim();
       if (!builderMap[key]) builderMap[key] = [];
       builderMap[key].push({ user: name, permitId: id, address: p.address, status, builder: p.builder });
@@ -483,7 +485,7 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
     const isOwn = name === activeUser;
     const d = new Date(dateStr + 'T12:00:00');
     const dayLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-    const filteredPermits = PERMITS.filter(p => {
+    const filteredPermits = permits.filter(p => {
       if (!plannerSearch.trim()) return true;
       const q = plannerSearch.toLowerCase();
       return (p.builder || '').toLowerCase().includes(q) || (p.address || '').toLowerCase().includes(q) || (p.city || '').toLowerCase().includes(q);
@@ -668,7 +670,7 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
               <div style={{ padding: '10px 14px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: T.textSub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>📋 Active ({activeStatuses.length})</div>
                 {activeStatuses.slice(0, 5).map(([id, status]) => {
-                  const permit = PERMITS.find(p => String(p.id) === String(id));
+                  const permit = permits.find(p => String(p.id) === String(id));
                   if (!permit) return null;
                   return (
                     <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: `1px solid ${T.cardBorder}` }}>
@@ -702,7 +704,8 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [mapStyle, setMapStyle] = useState('hybrid');
   const [selected, setSelected] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [permits, setPermits] = useState(PERMITS);
+  const [permits, setPermits] = useState([]);
+  const [permitsLoading, setPermitsLoading] = useState(true);
   const [geocoding, setGeocoding] = useState(false);
   const [routeList, setRouteList] = useState(() => loadRoute(activeUser));
   const [currentMonth, setCurrentMonth] = useState('All');
@@ -721,6 +724,18 @@ function PermitMapInner({ activeUser, onLogout }) {
   };
   const [dailyRoutes, setDailyRoutes] = useState(() => loadDailyRoutes(activeUser));
   const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
+
+  // Load permits from Firestore on mount
+  useEffect(() => {
+    getDocs(collection(db, 'permits')).then(snapshot => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPermits(data);
+      setPermitsLoading(false);
+    }).catch(err => {
+      console.error('Failed to load permits from Firestore:', err);
+      setPermitsLoading(false);
+    });
+  }, []);
 
   const isMobile = useRef(false);
   useEffect(() => {
@@ -817,19 +832,19 @@ function PermitMapInner({ activeUser, onLogout }) {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || permitsLoading || permits.length === 0) return;
     let cancelled = false;
     async function run() {
       setGeocoding(true);
-      const geocoded = await geocodePermits(PERMITS, token);
+      const geocoded = await geocodePermits(permits, token);
       if (!cancelled) {
-        setPermits(applyGeocodedCoords(PERMITS, geocoded));
+        setPermits(applyGeocodedCoords(permits, geocoded));
         setGeocoding(false);
       }
     }
     run();
     return () => { cancelled = true; };
-  }, [token]);
+  }, [token, permitsLoading]);
 
   const availableMonths = useMemo(() => {
     const seen = new Set();
@@ -878,7 +893,7 @@ function PermitMapInner({ activeUser, onLogout }) {
     map.on('load', () => {
       map.addSource('mapbox-dem', { type: 'raster-dem', url: 'mapbox://mapbox.mapbox-terrain-dem-v1', tileSize: 512, maxzoom: 14 });
       map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.3 });
-      addLayers(map, buildGeoJSON(PERMITS, loadStatuses()), selectPermit);
+      addLayers(map, buildGeoJSON([], loadStatuses()), selectPermit);
       setLoaded(true);
       map.flyTo({ center: [-95.88, 36.08], zoom: 10.5, pitch: 45, bearing: -12, duration: 2000 });
     });
@@ -930,6 +945,23 @@ function PermitMapInner({ activeUser, onLogout }) {
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative', overflow: 'hidden', background: T.bg }}>
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0 }} />
+
+      {/* Permits loading indicator */}
+      {permitsLoading && (
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          zIndex: 50, ...glassStyle(), borderRadius: 16, padding: '18px 28px',
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{
+            width: 18, height: 18, borderRadius: '50%',
+            border: `3px solid ${T.blue}`, borderTopColor: 'transparent',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <span style={{ color: T.text, fontSize: 14, fontWeight: 600 }}>Loading permits…</span>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, padding: '14px 16px 32px', pointerEvents: 'none' }}>
@@ -1051,7 +1083,7 @@ function PermitMapInner({ activeUser, onLogout }) {
           // From statuses (called/quoted/won)
           Object.entries(statuses).forEach(([id, status]) => {
             if (status === 'pass') return;
-            const permit = PERMITS.find(p => String(p.id) === String(id));
+            const permit = permits.find(p => String(p.id) === String(id));
             if (!permit) return;
             const key = permit.builder.toLowerCase().trim();
             if (!builderMap[key]) builderMap[key] = [];
@@ -1149,7 +1181,7 @@ function PermitMapInner({ activeUser, onLogout }) {
                           <div>
                             <div style={{ fontSize: 11, fontWeight: 600, color: T.textSub, marginBottom: 4 }}>📋 Working ({activeStatuses.length})</div>
                             {activeStatuses.map(([id, status]) => {
-                              const permit = PERMITS.find(p => String(p.id) === String(id));
+                              const permit = permits.find(p => String(p.id) === String(id));
                               if (!permit) return null;
                               return (
                                 <div key={id} style={{ fontSize: 12, color: T.text, padding: '3px 0', borderBottom: `1px solid ${T.cardBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1221,7 +1253,7 @@ function PermitMapInner({ activeUser, onLogout }) {
             }}
           />
           <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 10 }}>
-            {PERMITS.filter(p => !searchQuery.trim() || (p.builder || '').toLowerCase().includes(searchQuery.toLowerCase())).length} of {PERMITS.length} permits
+            {permits.filter(p => !searchQuery.trim() || (p.builder || '').toLowerCase().includes(searchQuery.toLowerCase())).length} of {permits.length} permits
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: T.blue, border: '2px solid #fff', boxShadow: '0 0 0 1px #ddd' }} />
@@ -1444,7 +1476,7 @@ function PermitMapInner({ activeUser, onLogout }) {
       {/* Active Builder Filter Card */}
       {searchQuery.trim() && (
         (() => {
-          const activeBuilder = PERMITS.find(p => (p.builder || '').toLowerCase() === searchQuery.toLowerCase());
+          const activeBuilder = permits.find(p => (p.builder || '').toLowerCase() === searchQuery.toLowerCase());
           if (!activeBuilder) return null;
           return (
             <div
