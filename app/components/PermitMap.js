@@ -5,10 +5,11 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { CITIES, CITY_COORDS } from '../../lib/permits';
 import { db } from '../../lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import { geocodePermits, applyGeocodedCoords, clearGeocodeCache } from '../../lib/geocode';
 import VisitModal from './VisitModal';
 import Dashboard from './Dashboard';
+import LeadHub from './LeadHub';
 import { LIQUID_GLASS, glassStyle, glassButton, glassButtonGhost } from '../../lib/theme';
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -714,6 +715,8 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showLeadHub, setShowLeadHub] = useState(false);
+  const [newLeadsCount, setNewLeadsCount] = useState(0);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [dailyRoutes, setDailyRoutes] = useState(() => loadDailyRoutes(activeUser));
   const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
@@ -734,6 +737,21 @@ function PermitMapInner({ activeUser, onLogout }) {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [sidebarExpanded]);
+
+  // Real-time new leads count for badge
+  useEffect(() => {
+    let fb = 0, re = 0;
+    const update = () => setNewLeadsCount(fb + re);
+    const unsub1 = onSnapshot(collection(db, 'fbLeads'), snap => {
+      fb = snap.docs.filter(d => d.data().status === 'new').length;
+      update();
+    });
+    const unsub2 = onSnapshot(collection(db, 'reLeads'), snap => {
+      re = snap.docs.filter(d => d.data().status === 'new').length;
+      update();
+    });
+    return () => { unsub1(); unsub2(); };
+  }, []);
 
   // Load permits from Firestore on mount
   useEffect(() => {
@@ -942,13 +960,16 @@ function PermitMapInner({ activeUser, onLogout }) {
   const isInRoute = selected ? !!routeList.find(p => p.id === selected.id) : false;
 
   // Derived active nav state
-  const activeNav = teamView ? 'team' : showDashboard ? 'intel' : showRoutePanel ? 'route' : panelOpen ? 'filters' : 'map';
+  const activeNav = showLeadHub ? 'leads' : teamView ? 'team' : showDashboard ? 'intel' : showRoutePanel ? 'route' : panelOpen ? 'filters' : 'map';
 
   const handleNavClick = (item) => {
     if (item === 'map') {
       setPanelOpen(false);
       setShowRoutePanel(false);
       setSidebarExpanded(false);
+      setShowLeadHub(false);
+      setTeamView(false);
+      setShowDashboard(false);
     } else if (item === 'filters') {
       const opening = !panelOpen;
       setPanelOpen(opening);
@@ -961,9 +982,18 @@ function PermitMapInner({ activeUser, onLogout }) {
       setSidebarExpanded(opening);
     } else if (item === 'intel') {
       setShowDashboard(true);
+      setShowLeadHub(false);
       setSidebarExpanded(false);
     } else if (item === 'team') {
       setTeamView(true);
+      setShowLeadHub(false);
+      setSidebarExpanded(false);
+      setPanelOpen(false);
+      setShowRoutePanel(false);
+    } else if (item === 'leads') {
+      setShowLeadHub(true);
+      setTeamView(false);
+      setShowDashboard(false);
       setSidebarExpanded(false);
       setPanelOpen(false);
       setShowRoutePanel(false);
@@ -1139,9 +1169,11 @@ function PermitMapInner({ activeUser, onLogout }) {
             { key: 'route',   icon: '📍', label: 'Route' },
             { key: 'intel',   icon: '📊', label: 'Intel' },
             { key: 'team',    icon: '👥', label: 'Team' },
+            { key: 'leads',   icon: '🎯', label: 'Leads' },
           ].map(({ key, icon, label }) => {
             const isActive = activeNav === key;
-            const showBadge = key === 'route' && routeList.length > 0;
+            const showBadge = (key === 'route' && routeList.length > 0) || (key === 'leads' && newLeadsCount > 0);
+            const badgeCount = key === 'route' ? routeList.length : key === 'leads' ? newLeadsCount : 0;
             return (
               <button
                 key={key}
@@ -1194,7 +1226,7 @@ function PermitMapInner({ activeUser, onLogout }) {
                     minWidth: 18,
                     textAlign: 'center',
                     lineHeight: '16px',
-                  }}>{routeList.length}</span>
+                  }}>{badgeCount}</span>
                 )}
               </button>
             );
@@ -1669,6 +1701,11 @@ function PermitMapInner({ activeUser, onLogout }) {
         />
       )}
 
+      {/* ── Lead Hub ──────────────────────────────────────────────────────────── */}
+      {showLeadHub && (
+        <LeadHub onClose={() => setShowLeadHub(false)} />
+      )}
+
       {/* ── Mobile Bottom Tab Bar ────────────────────────────────────────────── */}
       <div
         className="ist-bottom-tabs"
@@ -1693,9 +1730,11 @@ function PermitMapInner({ activeUser, onLogout }) {
           { key: 'route',   icon: '📍', label: 'Route' },
           { key: 'intel',   icon: '📊', label: 'Intel' },
           { key: 'team',    icon: '👥', label: 'Team' },
+          { key: 'leads',   icon: '🎯', label: 'Leads' },
         ].map(({ key, icon, label }) => {
           const isActive = activeNav === key;
-          const showBadge = key === 'route' && routeList.length > 0;
+          const showBadge = (key === 'route' && routeList.length > 0) || (key === 'leads' && newLeadsCount > 0);
+          const tabBadgeCount = key === 'route' ? routeList.length : key === 'leads' ? newLeadsCount : 0;
           return (
             <button
               key={key}
@@ -1722,7 +1761,7 @@ function PermitMapInner({ activeUser, onLogout }) {
                   background: '#00D47E', color: '#0A0A0F',
                   fontSize: 9, fontWeight: 800, borderRadius: 8,
                   padding: '1px 5px', minWidth: 16, textAlign: 'center',
-                }}>{routeList.length}</span>
+                }}>{tabBadgeCount}</span>
               )}
             </button>
           );
