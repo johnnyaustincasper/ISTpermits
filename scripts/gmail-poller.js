@@ -90,24 +90,12 @@ async function geocodeAddress(address, city, cache) {
 
 // ── PDF Parser ──────────────────────────────────────────────────────────────
 function parseWeekFromText(text, filename) {
-  const combined = text + ' ' + filename;
-
-  // Format: "3/8-3/14" or "03/08-03/14"
-  const slashRange = combined.match(/(\d{1,2})\/(\d{1,2})-(\d{1,2})\/(\d{1,2})/);
-  if (slashRange) {
-    return `${parseInt(slashRange[1])}/${parseInt(slashRange[2])}-${parseInt(slashRange[3])}/${parseInt(slashRange[4])}`;
-  }
-
-  // Format: "3-8 to 3-14-26" or "3-8 to 3-14" (dash-separated with "to")
-  const dashToRange = combined.match(/(\d{1,2})-(\d{1,2})\s+to\s+(\d{1,2})-(\d{1,2})(?:-\d{2,4})?/i);
-  if (dashToRange) {
-    return `${parseInt(dashToRange[1])}/${parseInt(dashToRange[2])}-${parseInt(dashToRange[3])}/${parseInt(dashToRange[4])}`;
-  }
-
+  // Try to find week range like "3/8-3/14" or "03/08-03/14" in text or filename
+  const weekMatch = (text + ' ' + filename).match(/(\d{1,2}\/\d{1,2})-(\d{1,2}\/\d{1,2})/);
+  if (weekMatch) return weekMatch[0];
   // Try "Week of Month Day" style
   const altMatch = text.match(/week\s+of\s+(\w+\s+\d+)/i);
   if (altMatch) return altMatch[1];
-
   return 'unknown';
 }
 
