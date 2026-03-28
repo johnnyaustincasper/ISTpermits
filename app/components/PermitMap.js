@@ -38,6 +38,14 @@ const STYLES = {
 };
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Parses month from week strings in any format:
+// "3/8-3/14"  "3-8 to 3-14-26"  "11/2-11/8"  "3-22 To 3-28-26"
+function weekToMonth(week) {
+  if (!week) return 0;
+  const m = parseInt((week || '').match(/(\d{1,2})[\/\-]/)?.[1] || '0');
+  return (m >= 1 && m <= 12) ? m : 0;
+}
 const NOTES_KEY = (user) => `ist-permit-notes-${user}`;
 const ROUTE_KEY = (user) => `ist-route-list-${user}`;
 const STATUS_KEY = (user) => `ist-permit-status-${user}`;
@@ -885,8 +893,8 @@ function PermitMapInner({ activeUser, onLogout }) {
   const availableMonths = useMemo(() => {
     const seen = new Set();
     permits.forEach(p => {
-      const m = parseInt((p.week || '').split('/')[0]);
-      if (m >= 1 && m <= 12) seen.add(m);
+      const m = weekToMonth(p.week);
+      if (m) seen.add(m);
     });
     return ['All', ...Array.from(seen).sort((a,b) => a-b).map(m => MONTH_NAMES[m-1])];
   }, [permits]);
@@ -896,7 +904,7 @@ function PermitMapInner({ activeUser, onLogout }) {
       if (customOnly && p.production) return false;
       if (currentCity !== 'All' && p.city !== currentCity) return false;
       if (currentMonth !== 'All') {
-        const m = parseInt((p.week || '').split('/')[0]);
+        const m = weekToMonth(p.week);
         if (MONTH_NAMES[m-1] !== currentMonth) return false;
       }
       if (searchQuery.trim()) {
