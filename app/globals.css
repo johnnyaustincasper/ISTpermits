@@ -35,5 +35,6 @@ html, body {
 .mapboxgl-ctrl-group button + button { border-top: 1px solid rgba(0,0,0,0.06) !important; }
 .mapboxgl-ctrl-bottom-right { bottom: calc(20px + env(safe-area-inset-bottom)) !important; right: 12px !important; }
 
-/* Prevent map canvas zoom on double tap */
+/* Prevent map canvas zoom on double tap / fix pinch zoom */
 .mapboxgl-canvas { touch-action: none; }
+.mapboxgl-canvas-container { touch-action: none; }

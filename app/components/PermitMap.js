@@ -935,9 +935,16 @@ function PermitMapInner({ activeUser, onLogout }) {
       fadeDuration: 0,
       trackResize: true,
       renderWorldCopies: false,
+      touchPitch: false,
+      touchZoomRotate: true,
     });
-    map.scrollZoom.setWheelZoomRate(1/450);
-    map.scrollZoom.setZoomRate(1/450);
+    map.scrollZoom.setWheelZoomRate(1/300);
+    map.scrollZoom.setZoomRate(1/300);
+    // Fix touch/pinch zoom
+    map.touchZoomRotate.enable({ around: 'center' });
+    map.touchPitch.disable(); // disable touch pitch — causes jank
+    map.dragRotate.disable(); // disable rotation — users expect pure zoom
+    map.touchZoomRotate.disableRotation(); // zoom only, no rotation on pinch
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     map.on('load', () => {
       // Skip 3D terrain — it hammers GPU during pan/zoom
