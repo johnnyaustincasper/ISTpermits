@@ -158,5 +158,1577 @@
   "2658 S Columbia Pl, Tulsa, OK": {
     "lat": 36.122387,
     "lng": -95.951181
+  },
+  "2541 S Delaware Pl, Tulsa, OK": {
+    "lat": 36.126518,
+    "lng": -95.948247
+  },
+  "4958 S Boston Pl, Tulsa, OK": {
+    "lat": 36.090981,
+    "lng": -95.983066
+  },
+  "4962 S Boston Pl, Tulsa, OK": {
+    "lat": 36.090837,
+    "lng": -95.983067
+  },
+  "1938 N Denver Av, Tulsa, OK": {
+    "lat": 36.183518,
+    "lng": -95.999816
+  },
+  "1137 S Xanthus Av, Tulsa, OK": {
+    "lat": 36.146486,
+    "lng": -95.963247
+  },
+  "2201 N Lewis Pl, Tulsa, OK": {
+    "lat": 36.185738,
+    "lng": -95.9571
+  },
+  "11306 S Thomas Ter, Jenks, OK": {
+    "lat": 36.022577,
+    "lng": -95.968354
+  },
+  "11109 S Thomas Ter, Jenks, OK": {
+    "lat": 36.022577,
+    "lng": -95.968354
+  },
+  "17844 E White Tail Cove, Owasso, OK": {
+    "lat": 36.24782,
+    "lng": -95.77752
+  },
+  "21144 S 4190 Rd, Claremore, OK": {
+    "lat": 36.314602,
+    "lng": -95.543115
+  },
+  "2766 Crosscreek Dr, Oologah, OK": {
+    "lat": 36.431074,
+    "lng": -95.781354
+  },
+  "6708 E 88 St N, Tulsa County, OK": {
+    "lat": 36.281069,
+    "lng": -95.898321
+  },
+  "15420 S 27 E Av, Tulsa County, OK": {
+    "lat": 35.93984,
+    "lng": -95.95309
+  },
+  "22792 W 41 St, Tulsa County, OK": {
+    "lat": 36.10377,
+    "lng": -96.24998
+  },
+  "7956 S 353 E Av, Wagoner, OK": {
+    "lat": 36.048232,
+    "lng": -95.583586
+  },
+  "3013 SPALMAV (, Broken Arrow, OK": {
+    "lat": 35.985858,
+    "lng": -95.834404
+  },
+  "27433 E 191 St, Wagoner, OK": {
+    "lat": 35.887599,
+    "lng": -95.671857
+  },
+  "302 N 85 Ct, Broken Arrow, OK": {
+    "lat": 36.055496,
+    "lng": -95.683804
+  },
+  "1200 N Dogwood Av, Broken Arrow, OK": {
+    "lat": 36.063378,
+    "lng": -95.820711
+  },
+  "27922 E 108 St, Coweta, OK": {
+    "lat": 36.007502,
+    "lng": -95.667975
+  },
+  "28032 E 108 Pl, Coweta, OK": {
+    "lat": 36.006708,
+    "lng": -95.669874
+  },
+  "10721 S 281 E Av, Coweta, OK": {
+    "lat": 36.008745,
+    "lng": -95.664058
+  },
+  "2044 E130 LN (, Jenks, OK": {
+    "lat": 34.187048,
+    "lng": -96.970033
+  },
+  "4202 W 111 Ct, Jenks, OK": {
+    "lat": 35.984263,
+    "lng": -95.970331
+  },
+  "4129 W 113 Pl, Jenks, OK": {
+    "lat": 36.000052,
+    "lng": -95.971956
+  },
+  "4125 W 113 Pl, Jenks, OK": {
+    "lat": 36.000052,
+    "lng": -95.971956
+  },
+  "12934 S 21 Pl, Jenks, OK": {
+    "lat": 35.978014,
+    "lng": -95.94053
+  },
+  "2052 E 130 Ln, Jenks, OK": {
+    "lat": 35.974407,
+    "lng": -95.950389
+  },
+  "17843 E White Tail Cove, Owasso, OK": {
+    "lat": 36.24858,
+    "lng": -95.77755
+  },
+  "17763 E White Tail Cove, Owasso, OK": {
+    "lat": 36.2485,
+    "lng": -95.77932
+  },
+  "30849 S 4210 Rd, Inola, OK": {
+    "lat": 36.165516,
+    "lng": -95.511731
+  },
+  "18797 E 480 Rd, Claremore, OK": {
+    "lat": 36.323697,
+    "lng": -95.493078
+  },
+  "795 S Boundry Rd, Oologah, OK": {
+    "lat": 36.438926,
+    "lng": -95.704491
+  },
+  "815 S Boundry Rd, Oologah, OK": {
+    "lat": 36.440033,
+    "lng": -95.704502
+  },
+  "13788 E Crestview Dr, Claremore, OK": {
+    "lat": 36.30063,
+    "lng": -95.58308
+  },
+  "2202 E 45 Pl, Sand Springs, OK": {
+    "lat": 36.097577,
+    "lng": -96.085711
+  },
+  "4615 S Birmingham Av, Tulsa, OK": {
+    "lat": 36.0964,
+    "lng": -95.95327
+  },
+  "16824 E 43 St, Tulsa, OK": {
+    "lat": 36.100967,
+    "lng": -95.789169
+  },
+  "2240 S 57 W Av, Tulsa, OK": {
+    "lat": 36.130727,
+    "lng": -96.056908
+  },
+  "29015 E80 CT(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.048064,
+    "lng": -95.651766
+  },
+  "514 E Young Pl N, Tulsa, OK": {
+    "lat": 36.188488,
+    "lng": -95.988417
+  },
+  "16401 N Memorial Dr, Tulsa County, OK": {
+    "lat": 36.39107,
+    "lng": -95.884231
+  },
+  "15401 S 145 E Av, Tulsa County, OK": {
+    "lat": 35.940144,
+    "lng": -95.8157
+  },
+  "3235 S 265 W Av, Tulsa County, OK": {
+    "lat": 36.11845,
+    "lng": -96.290932
+  },
+  "25901 E 51 St, Wagoner, OK": {
+    "lat": 36.091689,
+    "lng": -95.688376
+  },
+  "30509 E 63 Ct, Wagoner, OK": {
+    "lat": 36.072,
+    "lng": -95.633218
+  },
+  "8801 E Elgin St, Broken Arrow, OK": {
+    "lat": 36.054896,
+    "lng": -95.689541
+  },
+  "1801 N 71 St, Broken Arrow, OK": {
+    "lat": 36.067472,
+    "lng": -95.701155
+  },
+  "2736 E135 DR (, Jenks, OK": {
+    "lat": 34.183865,
+    "lng": -96.999039
+  },
+  "7300 E Norman St, Broken Arrow, OK": {
+    "lat": 36.063907,
+    "lng": -95.685943
+  },
+  "27808 E 109 St, Coweta, OK": {
+    "lat": 36.00591,
+    "lng": -95.667985
+  },
+  "10888 S 279 E Av, Coweta, OK": {
+    "lat": 36.007581,
+    "lng": -95.666021
+  },
+  "19434 S Quail Run Ct, Claremore, OK": {
+    "lat": 36.32973,
+    "lng": -95.57276
+  },
+  "28804 S Meadow Rd, Catoosa, OK": {
+    "lat": 36.194694,
+    "lng": -95.653304
+  },
+  "8725 S 33 W Av, Tulsa, OK": {
+    "lat": 36.037407,
+    "lng": -96.027319
+  },
+  "1255 E 31 Pl, Tulsa, OK": {
+    "lat": 36.117891,
+    "lng": -95.969759
+  },
+  "14140 S 201 E Av, Wagoner, OK": {
+    "lat": 35.96177,
+    "lng": -95.68565
+  },
+  "13919 SDATEST (, Jenks, OK": {
+    "lat": 42.359138,
+    "lng": -71.05511
+  },
+  "20830 S 349 E Av, Wagoner, OK": {
+    "lat": 35.860364,
+    "lng": -95.588837
+  },
+  "21630 E 112 Pl, Wagoner, OK": {
+    "lat": 36.00001,
+    "lng": -95.739297
+  },
+  "23065 E 107 St, Wagoner, OK": {
+    "lat": 35.895355,
+    "lng": -95.281271
+  },
+  "23133 E 106 Pl, Wagoner, OK": {
+    "lat": 36.009596,
+    "lng": -95.71781
+  },
+  "11245 S 217 E Av, Wagoner, OK": {
+    "lat": 36.009218,
+    "lng": -95.735651
+  },
+  "22928 E 106 Pl, Wagoner, OK": {
+    "lat": 36.008821,
+    "lng": -95.724946
+  },
+  "1725 N 71 St, Broken Arrow, OK": {
+    "lat": 36.067702,
+    "lng": -95.701166
+  },
+  "1219 N Elder Av, Broken Arrow, OK": {
+    "lat": 36.064029,
+    "lng": -95.821133
+  },
+  "6204 N 27 St, Broken Arrow, OK": {
+    "lat": 36.115391,
+    "lng": -95.756972
+  },
+  "809 W Ninth St N, Claremore, OK": {
+    "lat": 36.318892,
+    "lng": -95.61564
+  },
+  "17254 E White Tail Cove, Owasso, OK": {
+    "lat": 36.24772,
+    "lng": -95.7802
+  },
+  "704 N 89 St, Broken Arrow, OK": {
+    "lat": 36.059008,
+    "lng": -95.677423
+  },
+  "8116 E Jackson Cir, Broken Arrow, OK": {
+    "lat": 36.04537,
+    "lng": -95.805684
+  },
+  "8107 E Indianola Cir, Broken Arrow, OK": {
+    "lat": 36.045662,
+    "lng": -95.700043
+  },
+  "1716 N 72 St, Broken Arrow, OK": {
+    "lat": 36.066438,
+    "lng": -95.699722
+  },
+  "811 E Gary Pl, Broken Arrow, OK": {
+    "lat": 36.023847,
+    "lng": -95.781477
+  },
+  "913 E Honolulu Pl, Broken Arrow, OK": {
+    "lat": 36.022656,
+    "lng": -95.780167
+  },
+  "814 Kilby Dr, Broken Arrow, OK": {
+    "lat": 36.058916,
+    "lng": -95.756718
+  },
+  "818 Kilby Dr, Broken Arrow, OK": {
+    "lat": 36.05901,
+    "lng": -95.756718
+  },
+  "810 Kilby Dr, Broken Arrow, OK": {
+    "lat": 36.058822,
+    "lng": -95.756717
+  },
+  "822 Kilby Dr, Broken Arrow, OK": {
+    "lat": 36.059104,
+    "lng": -95.756718
+  },
+  "2835 E 141 Ct, Bixby, OK": {
+    "lat": 35.959321,
+    "lng": -95.947989
+  },
+  "14195 S Evanston Av, Bixby, OK": {
+    "lat": 36.01566,
+    "lng": -95.946234
+  },
+  "2839 E 141 Ct, Bixby, OK": {
+    "lat": 35.959323,
+    "lng": -95.94766
+  },
+  "15522 E Newton Pl, Catoosa, OK": {
+    "lat": 36.17403,
+    "lng": -95.80329
+  },
+  "4206 W 111 Ct, Jenks, OK": {
+    "lat": 35.984263,
+    "lng": -95.970331
+  },
+  "13813 S Birch St, Jenks, OK": {
+    "lat": 35.975477,
+    "lng": -95.97296
+  },
+  "11117 S Thomas Ter, Jenks, OK": {
+    "lat": 36.022577,
+    "lng": -95.968354
+  },
+  "11117 S Pressler Ter, Jenks, OK": {
+    "lat": 36.022577,
+    "lng": -95.968354
+  },
+  "5883 N Eagle Rd, Owasso, OK": {
+    "lat": 36.23882,
+    "lng": -95.78338
+  },
+  "10172 E Riverbluff Rd, Catoosa, OK": {
+    "lat": 36.173643,
+    "lng": -95.857009
+  },
+  "10094 E 575 Rd, Catoosa, OK": {
+    "lat": 36.186141,
+    "lng": -95.650226
+  },
+  "11274 S220 EAV(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "3406 NGUMPL (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "4106 SFIRCT (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "19516 S 4094 Rd, Claremore, OK": {
+    "lat": 36.32814,
+    "lng": -95.71305
+  },
+  "18044 E Marian Av, Claremore, OK": {
+    "lat": 36.312601,
+    "lng": -95.616147
+  },
+  "16897 E 14 St, Tulsa, OK": {
+    "lat": 36.142508,
+    "lng": -95.787477
+  },
+  "1847 N Owasso Av, Tulsa, OK": {
+    "lat": 36.182172,
+    "lng": -95.976703
+  },
+  "11547 E 68 St N, Tulsa County, OK": {
+    "lat": 36.253134,
+    "lng": -95.84687
+  },
+  "5827 Coldspring Ln, Bartlesville, OK": {
+    "lat": 40.347642,
+    "lng": -75.033924
+  },
+  "11944 S 85 E Av, Bixby, OK": {
+    "lat": 35.990989,
+    "lng": -95.881286
+  },
+  "8702 E Elgin Ct, Broken Arrow, OK": {
+    "lat": 36.05468,
+    "lng": -95.68014
+  },
+  "1433 N 71 St, Broken Arrow, OK": {
+    "lat": 36.065489,
+    "lng": -95.700767
+  },
+  "7217 E Oakland St, Broken Arrow, OK": {
+    "lat": 36.064941,
+    "lng": -95.700138
+  },
+  "6207 N 30 St, Broken Arrow, OK": {
+    "lat": 36.116882,
+    "lng": -95.753324
+  },
+  "4118 W 114 Pl, Jenks, OK": {
+    "lat": 35.998155,
+    "lng": -95.973432
+  },
+  "11113 S Thomas Ter, Jenks, OK": {
+    "lat": 36.022577,
+    "lng": -95.968354
+  },
+  "12941 S 21 Pl, Jenks, OK": {
+    "lat": 35.978014,
+    "lng": -95.94053
+  },
+  "2729 E 134 Cir, Jenks, OK": {
+    "lat": 35.977386,
+    "lng": -95.969441
+  },
+  "12937 S 21 Pl, Jenks, OK": {
+    "lat": 35.976701,
+    "lng": -95.940534
+  },
+  "2063 E 130 Ln, Jenks, OK": {
+    "lat": 35.974407,
+    "lng": -95.950389
+  },
+  "3816 E11 ST (, Tulsa, OK": {
+    "lat": 36.390868,
+    "lng": -95.048516
+  },
+  "2544 E 29 Pl, Tulsa, OK": {
+    "lat": 36.195908,
+    "lng": -95.9541
+  },
+  "3811 S Madison Av, Tulsa, OK": {
+    "lat": 36.107497,
+    "lng": -95.979856
+  },
+  "4734 S Boston Pl, Tulsa, OK": {
+    "lat": 36.094487,
+    "lng": -95.982986
+  },
+  "10748 S274 EPL (, Coweta, OK": {
+    "lat": 35.951959,
+    "lng": -95.65055
+  },
+  "3618 SNEWHAVENAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "4749 S Boston Av, Tulsa, OK": {
+    "lat": 36.093908,
+    "lng": -95.983457
+  },
+  "4750 S Boston Pl, Tulsa, OK": {
+    "lat": 36.0939,
+    "lng": -95.98303
+  },
+  "1025 E Queens St, Tulsa, OK": {
+    "lat": 36.17907,
+    "lng": -95.979047
+  },
+  "5239 N Norfolk Av, Tulsa, OK": {
+    "lat": 36.23036,
+    "lng": -95.97739
+  },
+  "7324 E 156 St N, Tulsa County, OK": {
+    "lat": 36.37969,
+    "lng": -95.89207
+  },
+  "17554 S Sheridan Rd, Tulsa County, OK": {
+    "lat": 35.909214,
+    "lng": -95.905414
+  },
+  "810 N Cedar Av, Broken Arrow, OK": {
+    "lat": 36.05987,
+    "lng": -95.794841
+  },
+  "3821 W Ithica Ct, Broken Arrow, OK": {
+    "lat": 36.02352,
+    "lng": -95.84467
+  },
+  "1224 N 72 St, Broken Arrow, OK": {
+    "lat": 36.065561,
+    "lng": -95.699713
+  },
+  "17585 S 33 W Av, Glenpool, OK": {
+    "lat": 35.906645,
+    "lng": -96.029583
+  },
+  "2000 Driftwood Dr, Jenks, OK": {
+    "lat": 40.800952,
+    "lng": -96.611396
+  },
+  "17663 E White Tail Cove, Owasso, OK": {
+    "lat": 36.24841,
+    "lng": -95.78183
+  },
+  "17364 E White Tail Cove, Owasso, OK": {
+    "lat": 36.24772,
+    "lng": -95.7802
+  },
+  "22315 S 4160 Rd, Claremore, OK": {
+    "lat": 36.279513,
+    "lng": -95.596285
+  },
+  "12541 S 4240 Rd, Claremore, OK": {
+    "lat": 36.428536,
+    "lng": -95.445756
+  },
+  "5113 S Everett Dr, Sand Springs, OK": {
+    "lat": 36.089972,
+    "lng": -96.122786
+  },
+  "5118 S Everett Dr, Sand Springs, OK": {
+    "lat": 36.089972,
+    "lng": -96.122786
+  },
+  "481 Creekside Dr, Sapulpa, OK": {
+    "lat": 35.994194,
+    "lng": -96.052304
+  },
+  "2630 Hickory Ridge Dr, Sapulpa, OK": {
+    "lat": 36.01723,
+    "lng": -96.07146
+  },
+  "1947 E Line Av, Sapulpa, OK": {
+    "lat": 35.998722,
+    "lng": -96.081908
+  },
+  "3308 Cypress Hill Rd, Sapulpa, OK": {
+    "lat": 35.998714,
+    "lng": -96.110196
+  },
+  "1049 S Cheyenne St, Skiatook, OK": {
+    "lat": 36.361372,
+    "lng": -96.029436
+  },
+  "1050 S Cheyenne St, Skiatook, OK": {
+    "lat": 36.361372,
+    "lng": -96.029436
+  },
+  "2756 S Victory Av, Tulsa, OK": {
+    "lat": 36.123401,
+    "lng": -95.965906
+  },
+  "4624 S Lewis Av, Tulsa, OK": {
+    "lat": 36.096151,
+    "lng": -95.958491
+  },
+  "1508 N Cheyenne Av, Tulsa, OK": {
+    "lat": 36.177241,
+    "lng": -95.998327
+  },
+  "2824 N Hartford Av, Tulsa, OK": {
+    "lat": 36.196247,
+    "lng": -95.984534
+  },
+  "2814 N Hartford Av, Tulsa, OK": {
+    "lat": 36.195669,
+    "lng": -95.984535
+  },
+  "2810 N Hartford Av, Tulsa, OK": {
+    "lat": 36.195438,
+    "lng": -95.984535
+  },
+  "2806 N Hartford Av, Tulsa, OK": {
+    "lat": 36.195207,
+    "lng": -95.984535
+  },
+  "2818 N Hartford Av, Tulsa, OK": {
+    "lat": 36.195675,
+    "lng": -95.98488
+  },
+  "8060 S290 EAV(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "11470 S 32 W Av, Tulsa County, OK": {
+    "lat": 35.997254,
+    "lng": -96.02913
+  },
+  "11359 E 66 St N, Tulsa County, OK": {
+    "lat": 36.24992,
+    "lng": -95.85024
+  },
+  "28630 E 61 St, Broken Arrow, OK": {
+    "lat": 36.075258,
+    "lng": -95.657977
+  },
+  "5568 S 258 E Av, Broken Arrow, OK": {
+    "lat": 36.014839,
+    "lng": -95.6895
+  },
+  "3916 N Pine Av, Broken Arrow, OK": {
+    "lat": 36.091057,
+    "lng": -95.812557
+  },
+  "8504 E110 STN (, Tulsa, OK": {
+    "lat": 35.936025,
+    "lng": -95.885461
+  },
+  "6109 N 30 St, Broken Arrow, OK": {
+    "lat": 36.06448,
+    "lng": -95.7538
+  },
+  "2115 W Lowry Rd, Claremore, OK": {
+    "lat": 36.336313,
+    "lng": -95.634291
+  },
+  "26435 E 115 Pl, Coweta, OK": {
+    "lat": 35.99618,
+    "lng": -95.68254
+  },
+  "10886 S 272 E Av, Coweta, OK": {
+    "lat": 35.985485,
+    "lng": -95.673202
+  },
+  "504 S Division St, Coweta, OK": {
+    "lat": 35.946402,
+    "lng": -95.655203
+  },
+  "10896 S 272 E Av, Coweta, OK": {
+    "lat": 35.985485,
+    "lng": -95.673202
+  },
+  "30 E 32 St, Sand Springs, OK": {
+    "lat": 36.11732,
+    "lng": -96.117179
+  },
+  "3118 E Archer St N, Tulsa, OK": {
+    "lat": 36.16235,
+    "lng": -95.94354
+  },
+  "346 E Zion Pl, Tulsa, OK": {
+    "lat": 36.1903,
+    "lng": -95.989377
+  },
+  "2101 ETOLEDOST (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "1322 N Knoxville Av, Tulsa, OK": {
+    "lat": 36.1743,
+    "lng": -95.937637
+  },
+  "2708 N St Louis Av, Tulsa, OK": {
+    "lat": 36.193575,
+    "lng": -95.971068
+  },
+  "2704 N St Louis Av, Tulsa, OK": {
+    "lat": 36.193676,
+    "lng": -95.971387
+  },
+  "2248 N Rockford Av, Tulsa, OK": {
+    "lat": 36.187718,
+    "lng": -95.97254
+  },
+  "2528 Martin Luther King Jr Blvd, Tulsa, OK": {
+    "lat": 36.190957,
+    "lng": -95.993533
+  },
+  "5953 E135 PLN (, Tulsa, OK": {
+    "lat": 35.040944,
+    "lng": -94.62562
+  },
+  "3017 S Palm Av, Broken Arrow, OK": {
+    "lat": 35.985858,
+    "lng": -95.834404
+  },
+  "2913 S Gardenia Av, Broken Arrow, OK": {
+    "lat": 36.023927,
+    "lng": -95.824437
+  },
+  "204 W Magnolia St, Coweta, OK": {
+    "lat": 35.955939,
+    "lng": -95.652754
+  },
+  "2048 E 130 Ln, Jenks, OK": {
+    "lat": 35.974407,
+    "lng": -95.950602
+  },
+  "20063 E 103 St N, Claremore, OK": {
+    "lat": 36.303854,
+    "lng": -95.746952
+  },
+  "5842 N Eagle Rd, Owasso, OK": {
+    "lat": 36.23937,
+    "lng": -95.78484
+  },
+  "20706 S Concord Av, Claremore, OK": {
+    "lat": 36.31281,
+    "lng": -95.73755
+  },
+  "10718 S275 EAV (, Coweta, OK": {
+    "lat": 34.884703,
+    "lng": -94.601874
+  },
+  "2275 E 380 Rd, Claremore, OK": {
+    "lat": 36.469644,
+    "lng": -95.788914
+  },
+  "20842 S Concord Av, Claremore, OK": {
+    "lat": 36.312694,
+    "lng": -95.736748
+  },
+  "20704 S Brentwood Av, Claremore, OK": {
+    "lat": 36.31238,
+    "lng": -95.73894
+  },
+  "21849 E137 ST(BROKENARROW) (, Coweta, OK": {
+    "lat": 35.361073,
+    "lng": -94.437608
+  },
+  "19950 S 4250 Rd, Claremore, OK": {
+    "lat": 36.328195,
+    "lng": -95.43557
+  },
+  "6600 S 4110 Rd, Claremore, OK": {
+    "lat": 36.516071,
+    "lng": -95.686709
+  },
+  "5017 NSYCAMOREAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "19460 E 590 Rd, Inola, OK": {
+    "lat": 36.162476,
+    "lng": -95.480552
+  },
+  "32236 S 4170 Rd, Inola, OK": {
+    "lat": 36.141,
+    "lng": -95.582927
+  },
+  "217 W 40 Pl, Sand Springs, OK": {
+    "lat": 36.105632,
+    "lng": -96.125682
+  },
+  "2130 W Admiral Av, Stillwater, OK": {
+    "lat": 36.122974,
+    "lng": -97.084977
+  },
+  "63 Arbor Cir, Stillwater, OK": {
+    "lat": 36.099741,
+    "lng": -97.089327
+  },
+  "716 W 11 Av, Stillwater, OK": {
+    "lat": 36.110153,
+    "lng": -97.066895
+  },
+  "104 E Rogers Ct, Stillwater, OK": {
+    "lat": 36.169892,
+    "lng": -97.059663
+  },
+  "406 S Colby Lance St, Stillwater, OK": {
+    "lat": 36.115656,
+    "lng": -97.058624
+  },
+  "2302 E Sycamore Dr, Stillwater, OK": {
+    "lat": 36.122222,
+    "lng": -97.030768
+  },
+  "4702 N Rogers Dr, Stillwater, OK": {
+    "lat": 36.170202,
+    "lng": -97.060247
+  },
+  "815 S Rock Hollow Ct, Stillwater, OK": {
+    "lat": 36.112256,
+    "lng": -97.1355
+  },
+  "6315 W Mesa Cir, Stillwater, OK": {
+    "lat": 36.102472,
+    "lng": -97.142076
+  },
+  "1802 S Hidden Oaks Dr, Stillwater, OK": {
+    "lat": 36.102145,
+    "lng": -97.143692
+  },
+  "6412 W 19 Av, Stillwater, OK": {
+    "lat": 36.10186,
+    "lng": -97.14457
+  },
+  "3511 S Braden Av, Tulsa, OK": {
+    "lat": 36.113443,
+    "lng": -95.91982
+  },
+  "3120 W 36 Pl, Tulsa, OK": {
+    "lat": 36.11055,
+    "lng": -96.027791
+  },
+  "2641 N Quincy Av, Tulsa, OK": {
+    "lat": 36.19316,
+    "lng": -95.973
+  },
+  "2715 N Quincy Av, Tulsa, OK": {
+    "lat": 36.193867,
+    "lng": -95.972997
+  },
+  "14430 E370 RD(CLAREMORE) (, Claremore, OK": {
+    "lat": 36.263773,
+    "lng": -95.610178
+  },
+  "2224 Martin Luther King Jr Blvd, Tulsa, OK": {
+    "lat": 36.185803,
+    "lng": -95.99353
+  },
+  "1232 N Urbana Av, Tulsa, OK": {
+    "lat": 36.172797,
+    "lng": -95.926177
+  },
+  "13939 N 97 E Av, Tulsa County, OK": {
+    "lat": 36.361889,
+    "lng": -95.866243
+  },
+  "3159 E 171 St, Tulsa County, OK": {
+    "lat": 35.916671,
+    "lng": -95.9444
+  },
+  "24817 W 49 St, Tulsa County, OK": {
+    "lat": 36.094729,
+    "lng": -96.270496
+  },
+  "30105 E 83 St, Broken Arrow, OK": {
+    "lat": 36.04172,
+    "lng": -95.641006
+  },
+  "2115 Turtle Creek Rd, Bartlesville, OK": {
+    "lat": 36.721186,
+    "lng": -95.947448
+  },
+  "6610 E 153 St, Bixby, OK": {
+    "lat": 35.941726,
+    "lng": -95.903062
+  },
+  "10308 E 132 St, Bixby, OK": {
+    "lat": 35.972527,
+    "lng": -95.868707
+  },
+  "404 N 80 St, Broken Arrow, OK": {
+    "lat": 36.063503,
+    "lng": -95.689598
+  },
+  "1816 N 71 St, Broken Arrow, OK": {
+    "lat": 36.067427,
+    "lng": -95.701145
+  },
+  "2807 E Liberty Pl, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "6105 N 30 St, Broken Arrow, OK": {
+    "lat": 36.06448,
+    "lng": -95.7538
+  },
+  "Address Unassigned, Catoosa, OK": {
+    "lat": 36.186649,
+    "lng": -95.746676
+  },
+  "15008 E Oklahoma St, Catoosa, OK": {
+    "lat": 36.175264,
+    "lng": -95.804542
+  },
+  "13848 S Date St, Jenks, OK": {
+    "lat": 35.98072,
+    "lng": -95.974845
+  },
+  "13833 S Birch St, Jenks, OK": {
+    "lat": 35.975477,
+    "lng": -95.97296
+  },
+  "1218 W 108 St, Jenks, OK": {
+    "lat": 36.007604,
+    "lng": -95.986632
+  },
+  "4118 W 113 St, Jenks, OK": {
+    "lat": 36.000052,
+    "lng": -95.971956
+  },
+  "16760 E Audubon Trl, Owasso, OK": {
+    "lat": 61.997462,
+    "lng": -150.067037
+  },
+  "720 N Main St, Sapulpa, OK": {
+    "lat": 36.007464,
+    "lng": -96.11469
+  },
+  "1340 E Grayson Av, Sapulpa, OK": {
+    "lat": 35.99015,
+    "lng": -96.094584
+  },
+  "724 S Muskogee St, Sapulpa, OK": {
+    "lat": 35.989645,
+    "lng": -96.122733
+  },
+  "7 E Fife St, Sapulpa, OK": {
+    "lat": 36.005478,
+    "lng": -96.114413
+  },
+  "718 N Main St, Sapulpa, OK": {
+    "lat": 36.007723,
+    "lng": -96.11446
+  },
+  "2222 S Florence Av, Tulsa, OK": {
+    "lat": 36.130757,
+    "lng": -95.945001
+  },
+  "1515 N Waco Av, Tulsa, OK": {
+    "lat": 36.177344,
+    "lng": -96.012484
+  },
+  "17749 S 45 E Av, Tulsa County, OK": {
+    "lat": 35.905494,
+    "lng": -95.927144
+  },
+  "1611 E 161 St, Tulsa County, OK": {
+    "lat": 35.930991,
+    "lng": -95.971805
+  },
+  "4220 E 106 St N, Tulsa County, OK": {
+    "lat": 36.309416,
+    "lng": -95.928091
+  },
+  "8034 S290 EAV(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "16559 S Lewis Av, Tulsa County, OK": {
+    "lat": 35.923374,
+    "lng": -95.956634
+  },
+  "25426 Stonebridge Pkwy, Claremore, OK": {
+    "lat": 36.243146,
+    "lng": -95.683739
+  },
+  "11196 S 140 E Av, Broken Arrow, OK": {
+    "lat": 36.000348,
+    "lng": -95.820525
+  },
+  "5912 W Vicksburg St, Broken Arrow, OK": {
+    "lat": 36.010093,
+    "lng": -95.863196
+  },
+  "6908 S Willow Av, Broken Arrow, OK": {
+    "lat": 35.983062,
+    "lng": -95.841213
+  },
+  "6117 N 30 St, Broken Arrow, OK": {
+    "lat": 36.06448,
+    "lng": -95.7538
+  },
+  "2092 E 130 Ln, Jenks, OK": {
+    "lat": 35.974407,
+    "lng": -95.950389
+  },
+  "2080 E 130 Ln, Jenks, OK": {
+    "lat": 35.974407,
+    "lng": -95.950389
+  },
+  "19625 S Elm Rd, Claremore, OK": {
+    "lat": 36.327108,
+    "lng": -95.748096
+  },
+  "21820 E Morgan Rd, Claremore, OK": {
+    "lat": 36.305604,
+    "lng": -95.43961
+  },
+  "21810 E Morgan Rd, Claremore, OK": {
+    "lat": 36.30591,
+    "lng": -95.439794
+  },
+  "27966 S 4170 Rd, Inola, OK": {
+    "lat": 36.2086,
+    "lng": -95.583025
+  },
+  "21246 S 4230 Rd, Claremore, OK": {
+    "lat": 36.325017,
+    "lng": -95.472429
+  },
+  "2119 E 45 Pl, Sand Springs, OK": {
+    "lat": 36.098221,
+    "lng": -96.085958
+  },
+  "606 Tall Chief Av, Skiatook, OK": {
+    "lat": 36.32488,
+    "lng": -96.100945
+  },
+  "4628 N Rogers Dr, Stillwater, OK": {
+    "lat": 36.169629,
+    "lng": -97.060179
+  },
+  "5606 W Trenton Av, Stillwater, OK": {
+    "lat": 36.110906,
+    "lng": -97.135806
+  },
+  "1108 S Pecan Hill St, Stillwater, OK": {
+    "lat": 36.110125,
+    "lng": -97.137109
+  },
+  "1122 S Stoneybrook St, Stillwater, OK": {
+    "lat": 36.10945,
+    "lng": -97.136101
+  },
+  "5723 W Pecan Hill Ct, Stillwater, OK": {
+    "lat": 36.10873,
+    "lng": -97.13807
+  },
+  "11507 S Hudson Av, Tulsa, OK": {
+    "lat": 35.997107,
+    "lng": -95.909076
+  },
+  "11920 S Braden Av, Tulsa, OK": {
+    "lat": 35.990263,
+    "lng": -95.920388
+  },
+  "1106 E 37 St, Tulsa, OK": {
+    "lat": 36.10959,
+    "lng": -95.97764
+  },
+  "3009 S 86 E Pl, Tulsa, OK": {
+    "lat": 36.119967,
+    "lng": -95.880434
+  },
+  "3624 S New Haven Av, Tulsa, OK": {
+    "lat": 36.110811,
+    "lng": -95.933816
+  },
+  "18411 W 41 St, Tulsa County, OK": {
+    "lat": 36.101984,
+    "lng": -96.197831
+  },
+  "18591 S 369 E Av, Porter, OK": {
+    "lat": 35.95791,
+    "lng": -95.56887
+  },
+  "22870 E 106 Pl, Broken Arrow, OK": {
+    "lat": 36.008821,
+    "lng": -95.724946
+  },
+  "22904 E 106 Pl, Broken Arrow, OK": {
+    "lat": 36.008821,
+    "lng": -95.724946
+  },
+  "320 W 138 St, Jenks, OK": {
+    "lat": 40.818681,
+    "lng": -73.946226
+  },
+  "303 EREDWOODST (, Coweta, OK": {
+    "lat": 35.956926,
+    "lng": -95.654621
+  },
+  "11105 S Thomas Ter, Jenks, OK": {
+    "lat": 36.022577,
+    "lng": -95.968354
+  },
+  "2709 E 134 Cir, Jenks, OK": {
+    "lat": 35.977386,
+    "lng": -95.969441
+  },
+  "1800 S19 ST (, Tulsa, OK": {
+    "lat": 36.390869,
+    "lng": -95.048544
+  },
+  "2083 E 136 St, Jenks, OK": {
+    "lat": 35.966254,
+    "lng": -95.943402
+  },
+  "12909 S 21 Pl, Jenks, OK": {
+    "lat": 35.976358,
+    "lng": -95.94054
+  },
+  "2043 E 129 Pl, Jenks, OK": {
+    "lat": 35.976474,
+    "lng": -95.943486
+  },
+  "3525 E 176 St N, Skiatook, OK": {
+    "lat": 36.409198,
+    "lng": -95.934783
+  },
+  "606 W83 ST (, Tulsa, OK": {
+    "lat": 35.638898,
+    "lng": -95.388429
+  },
+  "1035 N Valley Dr W, Tulsa County, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "9230 N Sheridan Rd, Tulsa County, OK": {
+    "lat": 36.288184,
+    "lng": -95.901998
+  },
+  "13575 N 109 E Av, Tulsa County, OK": {
+    "lat": 36.35352,
+    "lng": -95.852198
+  },
+  "19468 S Yale Av, Tulsa County, OK": {
+    "lat": 35.879714,
+    "lng": -95.928734
+  },
+  "3009 SREDWOODPL (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "10793 S274 EAV (, Coweta, OK": {
+    "lat": 34.884703,
+    "lng": -94.601874
+  },
+  "3901 S 255 W Av, Tulsa County, OK": {
+    "lat": 36.111439,
+    "lng": -96.277653
+  },
+  "11215 S 217 E Av, Broken Arrow, OK": {
+    "lat": 36.009218,
+    "lng": -95.735651
+  },
+  "4713 S Retana Av, Broken Arrow, OK": {
+    "lat": 36.003146,
+    "lng": -95.865792
+  },
+  "7108 E Tacoma St, Broken Arrow, OK": {
+    "lat": 36.070102,
+    "lng": -95.753872
+  },
+  "1800 N 72 St, Broken Arrow, OK": {
+    "lat": 36.066438,
+    "lng": -95.699722
+  },
+  "1202 N Elder Av, Broken Arrow, OK": {
+    "lat": 36.063384,
+    "lng": -95.821638
+  },
+  "5121 S Everett Dr, Sand Springs, OK": {
+    "lat": 36.089972,
+    "lng": -96.122786
+  },
+  "8842 S Guthrie Ct, Tulsa, OK": {
+    "lat": 36.047194,
+    "lng": -95.996151
+  },
+  "8615 S Houston Av, Tulsa, OK": {
+    "lat": 36.03901,
+    "lng": -96.00069
+  },
+  "2821 E 47 St, Tulsa, OK": {
+    "lat": 36.095461,
+    "lng": -95.947717
+  },
+  "7397 E25 PL Unknown5,725 2story$444,322 JOHANSENACRES 1 NEWHOUSES Remarks:Sq Ft Includes Garage, Tulsa, OK": {
+    "lat": 34.17221,
+    "lng": -97.09681
+  },
+  "2814 N St Louis Av, Tulsa, OK": {
+    "lat": 36.19596,
+    "lng": -95.971397
+  },
+  "3730 W 42 Pl, Tulsa, OK": {
+    "lat": 36.101027,
+    "lng": -96.0353
+  },
+  "4606 S 27 W Av, Tulsa, OK": {
+    "lat": 36.09705,
+    "lng": -96.022792
+  },
+  "19521 S Yale Av, Tulsa County, OK": {
+    "lat": 36.082717,
+    "lng": -95.922156
+  },
+  "9704 E 142 St N, Tulsa County, OK": {
+    "lat": 36.359321,
+    "lng": -95.865637
+  },
+  "7845 E 86 St N, Tulsa County, OK": {
+    "lat": 36.279889,
+    "lng": -95.887282
+  },
+  "15407 S 27 E Av, Tulsa County, OK": {
+    "lat": 35.94025,
+    "lng": -95.95193
+  },
+  "19522 Sheridan Rd, Tulsa County, OK": {
+    "lat": 35.89954,
+    "lng": -95.90745
+  },
+  "5522 NLEWISAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "29513 E106 ST(COWETA) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "2702 WSOUTHPARKPL (, Tulsa, OK": {
+    "lat": 39.756674,
+    "lng": -75.536104
+  },
+  "816 W83 ST (, Tulsa, OK": {
+    "lat": 36.390877,
+    "lng": -95.048772
+  },
+  "9121 NDELAWAREAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "8120 EJACKSONCIR (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "905 EHONOLULUPL (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "750 W83 ST (, Tulsa, OK": {
+    "lat": 36.390877,
+    "lng": -95.048772
+  },
+  "2727 E135 DR (, Jenks, OK": {
+    "lat": 34.183865,
+    "lng": -96.999039
+  },
+  "21690 E112 PL(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "7112 ETACOMAST (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "27953 E118 PL (, Coweta, OK": {
+    "lat": 34.180314,
+    "lng": -97.158364
+  },
+  "13820 S221 EAV(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "10803 S274 EAV (, Coweta, OK": {
+    "lat": 34.884703,
+    "lng": -94.601874
+  },
+  "17862 EPATRIOTDR(OWASSO) (, Owasso, OK": {
+    "lat": 35.965132,
+    "lng": -95.977648
+  },
+  "26657 S4130 RD(CLAREMORE) (, Jenks, OK": {
+    "lat": 36.263773,
+    "lng": -95.610178
+  },
+  "8229 SGUTHRIEAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "9111 E62 PL (, Tulsa, OK": {
+    "lat": 34.172102,
+    "lng": -97.097123
+  },
+  "6808 SUMBRELLAAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "4410 WWINSTONST (, Broken Arrow, OK": {
+    "lat": 35.985368,
+    "lng": -95.766273
+  },
+  "10758 S274 EPL (, Coweta, OK": {
+    "lat": 35.951959,
+    "lng": -95.65055
+  },
+  "8046 S290 EAV(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "5800 WCHARLESTONST (, Broken Arrow, OK": {
+    "lat": 36.007272,
+    "lng": -95.860991
+  },
+  "17660 EHWY20(CLAREMORE) (, Claremore, OK": {
+    "lat": 36.308864,
+    "lng": -95.615941
+  },
+  "11255 S220 EAV(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "24789 E51 ST(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "3016 SPALMAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "6702 SCYPRESSAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "8604 E109 STN (, Tulsa, OK": {
+    "lat": 36.39088,
+    "lng": -95.048864
+  },
+  "3005 SREDWOODPL (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "13203 S129 EAV (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "8303 SGUTHRIEAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "8210 EJACKSONCIR (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "10707 S274 EPL (, Coweta, OK": {
+    "lat": 35.951959,
+    "lng": -95.65055
+  },
+  "17561 S56 EAV (, Tulsa, OK": {
+    "lat": 35.90868,
+    "lng": -95.91372
+  },
+  "5721 E132 PLN (, Tulsa, OK": {
+    "lat": 34.201777,
+    "lng": -96.955961
+  },
+  "1816 S19 ST (, Tulsa, OK": {
+    "lat": 36.390869,
+    "lng": -95.048544
+  },
+  "1812 S19 ST (, Tulsa, OK": {
+    "lat": 36.390869,
+    "lng": -95.048544
+  },
+  "702 W83 ST (, Tulsa, OK": {
+    "lat": 36.390877,
+    "lng": -95.048772
+  },
+  "8314 E110 STN (, Tulsa, OK": {
+    "lat": 35.936025,
+    "lng": -95.885461
+  },
+  "218 WDURHAMPL (, Broken Arrow, OK": {
+    "lat": 36.003612,
+    "lng": -95.790235
+  },
+  "2109 ETOLEDOST (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "614 W83 ST (, Tulsa, OK": {
+    "lat": 35.638896,
+    "lng": -95.388716
+  },
+  "21881 E138 ST(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 35.936025,
+    "lng": -95.885461
+  },
+  "112 E165 ST (, Tulsa, OK": {
+    "lat": 36.390886,
+    "lng": -95.049064
+  },
+  "2702 WSOUTHPARKPL (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "754 W83 ST (, Tulsa, OK": {
+    "lat": 36.390877,
+    "lng": -95.048772
+  },
+  "21410 E112 PL(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "13937 S222 EAV(BROKENARROW) (, Wagoner, OK": {
+    "lat": 34.884703,
+    "lng": -94.601874
+  },
+  "3204 W81 ST (, Tulsa, OK": {
+    "lat": 36.046441,
+    "lng": -96.02734
+  },
+  "17364 S58 EAV (, Tulsa, OK": {
+    "lat": 36.158292,
+    "lng": -95.749853
+  },
+  "8006 EJACKSONCT (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "10801 S274 EAV (, Coweta, OK": {
+    "lat": 34.884703,
+    "lng": -94.601874
+  },
+  "2341 E134 CIR (, Jenks, OK": {
+    "lat": 34.31225,
+    "lng": -97.1447
+  },
+  "654 W83 ST (, Tulsa, OK": {
+    "lat": 35.63889,
+    "lng": -95.390153
+  },
+  "8677 TIMBERWOLFDR(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "2023 ESANANTONIOST (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "1708 N72 ST (, Broken Arrow, OK": {
+    "lat": 36.066438,
+    "lng": -95.699722
+  },
+  "8603 E109 STN (, Tulsa, OK": {
+    "lat": 36.39088,
+    "lng": -95.048864
+  },
+  "602 W83 ST (, Tulsa, OK": {
+    "lat": 35.638899,
+    "lng": -95.388285
+  },
+  "1804 S19 ST (, Tulsa, OK": {
+    "lat": 36.390869,
+    "lng": -95.048544
+  },
+  "323 EBROADWAYAV (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "10768 S274 EPL (, Coweta, OK": {
+    "lat": 35.951959,
+    "lng": -95.65055
+  },
+  "13038 S278 EAV Unknown1,250 $130,000 1 NEWHOUSES Remarks:Sq Ft Includes Garage GLENPOOL-NEWHOUSESTHISREPORT(, Coweta, OK": {
+    "lat": 35.973566,
+    "lng": -95.636528
+  },
+  "6812 SUMBRELLAAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "312 S83 ST (, Broken Arrow, OK": {
+    "lat": 36.155037,
+    "lng": -95.884474
+  },
+  "731 NYORKTOWNAV (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "861 W83 ST (, Tulsa, OK": {
+    "lat": 36.390877,
+    "lng": -95.048772
+  },
+  "4106 SFIRCT (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "8117 EJACKSONCIR (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "779 W126 ST (, Glenpool, OK": {
+    "lat": 35.980921,
+    "lng": -95.997851
+  },
+  "2340 E135 DR (, Jenks, OK": {
+    "lat": 34.197491,
+    "lng": -97.001195
+  },
+  "1402 OAKHURSTCIR (, Claremore, OK": {
+    "lat": 36.312601,
+    "lng": -95.616147
+  },
+  "29033 E80 CT(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.048056,
+    "lng": -95.651752
+  },
+  "17007 N113 EAV (, Tulsa, OK": {
+    "lat": 36.399856,
+    "lng": -95.84814
+  },
+  "5916 E173 ST (, Tulsa, OK": {
+    "lat": 36.390887,
+    "lng": -95.049092
+  },
+  "8103 EINDIANOLAST (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "29027 E80 CT(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.048058,
+    "lng": -95.651757
+  },
+  "9711 S4170 RD(CLAREMORE) (, Claremore, OK": {
+    "lat": 36.466914,
+    "lng": -95.57917
+  },
+  "16734 E78 ST(OWASSO) (, Owasso, OK": {
+    "lat": 36.268061,
+    "lng": -95.78658
+  },
+  "27963 E118 PL (, Coweta, OK": {
+    "lat": 34.180314,
+    "lng": -97.158364
+  },
+  "2610 E134 CIR (, Jenks, OK": {
+    "lat": 34.31225,
+    "lng": -97.1447
+  },
+  "225 EPINEPL (, Skiatook, OK": {
+    "lat": 36.368552,
+    "lng": -96.001296
+  },
+  "302 W165 PL (, Tulsa, OK": {
+    "lat": 35.923127,
+    "lng": -95.992948
+  },
+  "10698 S226 EAV(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "10715 S274 EPL (, Coweta, OK": {
+    "lat": 35.951959,
+    "lng": -95.65055
+  },
+  "718 W83 ST (, Tulsa, OK": {
+    "lat": 36.390877,
+    "lng": -95.048772
+  },
+  "10728 S275 EAV (, Coweta, OK": {
+    "lat": 34.884703,
+    "lng": -94.601874
+  },
+  "10788 S274 EPL (, Coweta, OK": {
+    "lat": 35.951959,
+    "lng": -95.65055
+  },
+  "1808 S19 ST (, Tulsa, OK": {
+    "lat": 36.390869,
+    "lng": -95.048544
+  },
+  "2609 WTWINOAKSST (, Tulsa, OK": {
+    "lat": 36.15286,
+    "lng": -95.989398
+  },
+  "3163 E171 ST (, Tulsa, OK": {
+    "lat": 36.390887,
+    "lng": -95.049085
+  },
+  "31235 E65 PL(BROKENARROW) (, Broken Arrow, OK": {
+    "lat": 36.052419,
+    "lng": -95.790795
+  },
+  "10727 S274 EPL (, Coweta, OK": {
+    "lat": 35.951959,
+    "lng": -95.65055
   }
 }

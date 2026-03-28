@@ -709,6 +709,7 @@ export default function PermitMap() {
 function PermitMapInner({ activeUser, onLogout }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
+  const selectPermitRef = useRef(null);
   const sidebarRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
   const [currentCity, setCurrentCity] = useState('All');
@@ -798,7 +799,10 @@ function PermitMapInner({ activeUser, onLogout }) {
         mapRef.current.easeTo({ center: coords, padding: { bottom: cardHeight }, duration: 400 });
       }
     }
-  }, []);
+  }, []); // stable — uses only refs and setters
+
+  // Keep selectPermitRef always pointing to latest selectPermit
+  useEffect(() => { selectPermitRef.current = selectPermit; }, [selectPermit]);
 
   const closeDetail = useCallback(() => {
     setSelected(null);
@@ -874,20 +878,9 @@ function PermitMapInner({ activeUser, onLogout }) {
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-  useEffect(() => {
-    if (!token || permitsLoading || permits.length === 0) return;
-    let cancelled = false;
-    async function run() {
-      setGeocoding(true);
-      const geocoded = await geocodePermits(permits, token);
-      if (!cancelled) {
-        setPermits(applyGeocodedCoords(permits, geocoded));
-        setGeocoding(false);
-      }
-    }
-    run();
-    return () => { cancelled = true; };
-  }, [token, permitsLoading]);
+  // Geocoding now happens server-side via geocode-backfill.mjs — coords live in Firestore.
+  // Client-side geocoding disabled to prevent setPermits re-render cascade on load.
+  useEffect(() => { setGeocoding(false); }, []);
 
   const availableMonths = useMemo(() => {
     const seen = new Set();
@@ -928,26 +921,26 @@ function PermitMapInner({ activeUser, onLogout }) {
       style: STYLES.hybrid,
       center: [-95.85, 36.10],
       zoom: 10.3,
-      pitch: 40,
-      bearing: -10,
-      antialias: true,
+      pitch: 0,
+      bearing: 0,
+      antialias: false,
       fadeDuration: 0,
-      optimizeForTerrain: true,
       trackResize: true,
+      renderWorldCopies: false,
     });
     map.scrollZoom.setWheelZoomRate(1/450);
     map.scrollZoom.setZoomRate(1/450);
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     map.on('load', () => {
-      map.addSource('mapbox-dem', { type: 'raster-dem', url: 'mapbox://mapbox.mapbox-terrain-dem-v1', tileSize: 512, maxzoom: 14 });
-      map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.3 });
-      addLayers(map, buildGeoJSON([], loadStatuses()), selectPermit);
+      // Skip 3D terrain — it hammers GPU during pan/zoom
+      addLayers(map, buildGeoJSON([], loadStatuses()), (permit) => selectPermitRef.current(permit));
       setLoaded(true);
-      map.flyTo({ center: [-95.88, 36.08], zoom: 10.5, pitch: 45, bearing: -12, duration: 2000 });
+      map.flyTo({ center: [-95.88, 36.08], zoom: 10.5, pitch: 0, bearing: 0, duration: 1800 });
     });
     mapRef.current = map;
     return () => { map.remove(); mapRef.current = null; };
-  }, [token, selectPermit]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   useEffect(() => {
     if (!mapRef.current || !loaded) return;
