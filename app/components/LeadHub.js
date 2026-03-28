@@ -586,7 +586,11 @@ export default function LeadHub({ onClose }) {
   }, [newIds]);
 
   // ── Filter logic ──────────────────────────────────────────────────────────
-  const allLeads = [...fbLeads, ...reLeads].sort((a, b) => getLeadTs(b) - getLeadTs(a));
+  const allLeads = [...fbLeads, ...reLeads].sort((a, b) => {
+    // Hot leads first, then by score desc, then newest first
+    if (b.score !== a.score) return (b.score || 0) - (a.score || 0);
+    return getLeadTs(b) - getLeadTs(a);
+  });
 
   const filtered = allLeads.filter(l => {
     if (filter === 'all') return true;
@@ -604,7 +608,14 @@ export default function LeadHub({ onClose }) {
   const newToday = allLeads.filter(l => isNew24h(l.processedAt) || (typeof l.processedAt === 'number' && now - l.processedAt < 86400000)).length;
   const hotLeads = allLeads.filter(l => l.score >= 8).length;
   const pendingFollowUp = allLeads.filter(l => l.status === 'contacted').length;
-  const pipelineValue = reLeads.filter(l => l.status !== 'dismissed').reduce((sum, l) => sum + (l.price || 0), 0);
+  // Pipeline value = sum of 8" insulation quotes across all active RE leads
+  const pipelineValue = reLeads.filter(l => l.status !== 'dismissed').reduce((sum, l) => {
+    const sqft = parseInt(l.sqft) || 0;
+    if (!sqft) return sum;
+    const gross = Math.round(sqft * 0.80);
+    const rebate = sqft > 1000 ? 600 : 0;
+    return sum + Math.max(0, gross - rebate);
+  }, 0);
 
   // ── Status change ─────────────────────────────────────────────────────────
   const handleStatusChange = useCallback(async (lead, newStatus) => {
