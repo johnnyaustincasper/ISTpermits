@@ -181,7 +181,11 @@ function LeadCard({ lead, onClick, isNew: flashNew }) {
         {/* Subline */}
         <div style={{ fontSize: 12, color: 'rgba(240,240,245,0.5)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {isFB
-            ? (lead.text || '').substring(0, 80) + ((lead.text || '').length > 80 ? '…' : '')
+            ? <>
+                {lead.phone && <span style={{ color: '#00D47E', fontWeight: 700, marginRight: 6 }}>📞 {lead.phone}</span>}
+                {(lead.description || lead.text || '').substring(0, lead.phone ? 50 : 80)}
+                {(lead.description || lead.text || '').length > (lead.phone ? 50 : 80) ? '…' : ''}
+              </>
             : `${lead.yearBuilt || '?'} · ${lead.sqft ? lead.sqft.toLocaleString() : '?'} sqft · ${formatPrice(lead.price)}`
           }
         </div>
@@ -246,15 +250,14 @@ function ProgressBar({ label, value, max = 100, color = '#00D47E' }) {
 function QuoteRow({ label, amount, psoRebate, maxAmount, color = '#00D47E' }) {
   const [animated, setAnimated] = useState(false);
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 100); return () => clearTimeout(t); }, []);
-  const net = psoRebate ? amount - 600 : amount;
   const pct = maxAmount ? (amount / maxAmount) * 100 : 0;
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
         <span style={{ fontSize: 11, color: 'rgba(240,240,245,0.55)', fontWeight: 600 }}>{label}</span>
         <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: 13, color, fontWeight: 800 }}>${net.toLocaleString()}</span>
-          {psoRebate && <span style={{ fontSize: 10, color: '#00D47E', marginLeft: 6 }}>(-$600 PSO)</span>}
+          <span style={{ fontSize: 13, color, fontWeight: 800 }}>${amount.toLocaleString()}</span>
+          {psoRebate && <span style={{ fontSize: 10, color: '#00D47E', marginLeft: 6 }}>PSO eligible</span>}
         </div>
       </div>
       <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
@@ -263,6 +266,38 @@ function QuoteRow({ label, amount, psoRebate, maxAmount, color = '#00D47E' }) {
           width: animated ? `${pct}%` : '0%', transition: 'width 0.8s ease',
         }} />
       </div>
+    </div>
+  );
+}
+
+// ─── Expandable FB Post Text ──────────────────────────────────────────────────
+function FBPostText({ text }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!text) return <div style={{ fontSize: 13, color: 'rgba(240,240,245,0.45)' }}>No text available</div>;
+  const preview = text.substring(0, 200);
+  const hasMore = text.length > 200;
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 10, padding: '12px 14px', fontSize: 13,
+      color: 'rgba(240,240,245,0.8)', lineHeight: 1.6,
+    }}>
+      <span style={{ whiteSpace: 'pre-wrap' }}>
+        {expanded ? text : preview}
+        {!expanded && hasMore && '…'}
+      </span>
+      {hasMore && (
+        <button
+          onClick={() => setExpanded(e => !e)}
+          style={{
+            display: 'block', marginTop: 8, background: 'none', border: 'none',
+            color: '#00D47E', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            fontFamily: 'inherit', padding: 0,
+          }}
+        >
+          {expanded ? '▲ Show less' : '▼ Show more'}
+        </button>
+      )}
     </div>
   );
 }
@@ -345,34 +380,74 @@ function LeadDetail({ lead, onClose, onStatusChange }) {
       <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
         {isFB ? (
           <>
-            <Section title="Post Text">
-              <div style={{
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 10, padding: '12px 14px', fontSize: 13,
-                color: 'rgba(240,240,245,0.8)', lineHeight: 1.6,
-              }}>
-                {lead?.text || 'No text available'}
-              </div>
-            </Section>
-            <Section title="Group">
-              <div style={{ fontSize: 13, color: '#F0F0F5' }}>
-                {lead?.group}
-                {lead?.url && (
-                  <a href={lead.url} target="_blank" rel="noopener noreferrer"
-                    style={{ color: '#00D47E', marginLeft: 10, fontSize: 12 }}>
-                    View Post →
+            {/* Group badge + View Post link */}
+            <Section title="Source">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                {(lead?.groupName || lead?.group) && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+                    background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.3)',
+                    color: '#f97316',
+                  }}>
+                    📢 {lead.groupName || lead.group}
+                  </span>
+                )}
+                {(lead?.postUrl || lead?.url) && (
+                  <a href={lead.postUrl || lead.url} target="_blank" rel="noopener noreferrer"
+                    style={{
+                      fontSize: 12, fontWeight: 700, color: '#00D47E',
+                      textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4,
+                    }}>
+                    🔗 View Post →
                   </a>
                 )}
               </div>
             </Section>
-            {lead?.author && (
-              <Section title="Author">
-                <div style={{ fontSize: 13, color: '#F0F0F5' }}>{lead.author}</div>
+
+            {/* Poster info */}
+            {(lead?.posterName || lead?.author) && (
+              <Section title="Posted By">
+                <div style={{ fontSize: 13, color: '#F0F0F5', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  👤{' '}
+                  {lead?.posterUrl ? (
+                    <a href={lead.posterUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ color: '#00D47E', textDecoration: 'none', fontWeight: 600 }}>
+                      {lead.posterName || lead.author}
+                    </a>
+                  ) : (
+                    <span style={{ fontWeight: 600 }}>{lead.posterName || lead.author}</span>
+                  )}
+                </div>
               </Section>
             )}
+
+            {/* Phone */}
+            {lead?.phone && (
+              <Section title="Phone">
+                <a href={`tel:${lead.phone}`}
+                  style={{ fontSize: 14, fontWeight: 700, color: '#00D47E', textDecoration: 'none' }}>
+                  📞 {lead.phone}
+                </a>
+              </Section>
+            )}
+
+            {/* Post image */}
+            {lead?.imageUrl && (
+              <Section title="Image">
+                <img src={lead.imageUrl} alt="Post" style={{
+                  width: '100%', borderRadius: 10, objectFit: 'cover', maxHeight: 200,
+                }} />
+              </Section>
+            )}
+
+            {/* Full post text */}
+            <Section title="Post Text">
+              <FBPostText text={lead?.description || lead?.text} />
+            </Section>
+
             <Section title="Activity">
               <div style={{ fontSize: 12, color: 'rgba(240,240,245,0.45)' }}>
-                Processed: {lead?.processedAt ? new Date(getLeadTs(lead)).toLocaleString() : 'Unknown'}
+                Scraped: {lead?.scrapedAt ? new Date(lead.scrapedAt).toLocaleString() : lead?.processedAt ? new Date(getLeadTs(lead)).toLocaleString() : 'Unknown'}
               </div>
             </Section>
           </>
@@ -406,7 +481,7 @@ function LeadDetail({ lead, onClose, onStatusChange }) {
                 <QuoteRow label='12" Blown-In' amount={q12} psoRebate={pso} maxAmount={maxQ} color="#f97316" />
                 {pso && (
                   <div style={{ fontSize: 11, color: '#00D47E', marginTop: 4, fontWeight: 600 }}>
-                    ✓ PSO Rebate eligible ($600 applied above)
+                    ✓ PSO Rebate eligible ($600 — apply at close)
                   </div>
                 )}
               </Section>

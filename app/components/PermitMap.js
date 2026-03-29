@@ -314,7 +314,7 @@ function buildGeoJSON(permits, statuses = {}) {
 function fmt(v) { return '$' + Number(v).toLocaleString(); }
 
 function addLayers(map, data, onClickPermit) {
-  // If source already exists, just update data — don't tear down layers (causes flicker)
+  // If source already exists, just update data — clustering is applied automatically by Mapbox
   if (map.getSource('permits')) {
     map.getSource('permits').setData(data);
     // Re-wire click handler
@@ -323,7 +323,7 @@ function addLayers(map, data, onClickPermit) {
       const f = e.features[0];
       const p = f.properties;
       const [lng, lat] = f.geometry.coordinates;
-      onClickPermit({ ...p, lat, lng, production: p.production === true || p.production === 'true' });
+      setTimeout(() => onClickPermit({ ...p, lat, lng, production: p.production === true || p.production === 'true' }), 0);
     };
     map.on('click', 'permits-hit', map._permitClick);
     return;
@@ -334,8 +334,12 @@ function addLayers(map, data, onClickPermit) {
   if (map.getLayer('permits-main')) map.removeLayer('permits-main');
   if (map.getSource('permits')) map.removeSource('permits');
 
-  map.addSource('permits', { type: 'geojson', data, generateId: true });
+  map.addSource('permits', {
+    type: 'geojson',
+    data,
+  });
 
+  // Individual permit circles
   map.addLayer({
     id: 'permits-main',
     type: 'circle',
@@ -350,6 +354,7 @@ function addLayers(map, data, onClickPermit) {
     },
   });
 
+  // Hit area for individual permits (invisible, larger tap target)
   map.addLayer({
     id: 'permits-hit',
     type: 'circle',
@@ -361,6 +366,7 @@ function addLayers(map, data, onClickPermit) {
     },
   });
 
+  // Labels for individual permits at high zoom
   map.addLayer({
     id: 'permits-labels',
     type: 'symbol',
@@ -381,12 +387,13 @@ function addLayers(map, data, onClickPermit) {
     },
   });
 
+  // Click individual permits
   if (map._permitClick) map.off('click', 'permits-hit', map._permitClick);
   map._permitClick = (e) => {
     const f = e.features[0];
     const p = f.properties;
     const [lng, lat] = f.geometry.coordinates;
-    onClickPermit({ ...p, lat, lng, production: p.production === true || p.production === 'true' });
+    setTimeout(() => onClickPermit({ ...p, lat, lng, production: p.production === true || p.production === 'true' }), 0);
   };
   map.on('click', 'permits-hit', map._permitClick);
   map.on('mouseenter', 'permits-hit', () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -940,11 +947,45 @@ function PermitMapInner({ activeUser, onLogout }) {
     });
     map.scrollZoom.setWheelZoomRate(1/300);
     map.scrollZoom.setZoomRate(1/300);
-    // Fix touch/pinch zoom
-    map.touchZoomRotate.enable({ around: 'center' });
-    map.touchPitch.disable(); // disable touch pitch — causes jank
-    map.dragRotate.disable(); // disable rotation — users expect pure zoom
-    map.touchZoomRotate.disableRotation(); // zoom only, no rotation on pinch
+    // Disable ALL competing gesture handlers
+    map.touchPitch.disable();
+    map.dragRotate.disable();
+    map.touchZoomRotate.disableRotation();
+
+    // Disable Mapbox's built-in touchZoomRotate — it has a known iOS Safari jitter bug
+    map.touchZoomRotate.disable();
+
+    // Custom pinch zoom handler with deadzone to filter finger micro-jitter
+    let lastDist = null;
+    mapContainer.current.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== 2) { lastDist = null; return; }
+  e.preventDefault();
+  const dx = e.touches[0].clientX - e.touches[1].clientX;
+  const dy = e.touches[0].clientY - e.touches[1].clientY;
+  lastDist = Math.sqrt(dx * dx + dy * dy);
+}, { passive: false });
+
+    mapContainer.current.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2 && lastDist) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const ratio = dist / lastDist;
+    // 3% deadzone — ignore micro-jitter
+    if (ratio > 0.97 && ratio < 1.03) return;
+    // Clamp max zoom speed — prevent violent jumps
+    const clampedRatio = Math.max(0.92, Math.min(1.08, ratio));
+    const zoomDelta = (clampedRatio - 1) * 1.2;
+    map.setZoom(map.getZoom() + zoomDelta);
+    // CRITICAL: only update lastDist after a real zoom — not inside deadzone
+    lastDist = dist;
+  }
+}, { passive: false });
+
+    mapContainer.current.addEventListener('touchend', () => {
+      lastDist = null;
+    }, { passive: false });
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     map.on('load', () => {
       // Skip 3D terrain — it hammers GPU during pan/zoom
@@ -977,10 +1018,6 @@ function PermitMapInner({ activeUser, onLogout }) {
     const map = mapRef.current;
     map.setStyle(STYLES[style]);
     map.once('style.load', () => {
-      if (!map.getSource('mapbox-dem')) {
-        map.addSource('mapbox-dem', { type: 'raster-dem', url: 'mapbox://mapbox.mapbox-terrain-dem-v1', tileSize: 512, maxzoom: 14 });
-      }
-      map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.3 });
       addLayers(map, geoJSON, selectPermit);
     });
   }, [geoJSON, selectPermit]);
@@ -1052,7 +1089,7 @@ function PermitMapInner({ activeUser, onLogout }) {
   }
 
   return (
-    <div style={{ width: '100%', height: '100vh', position: 'relative', overflow: 'hidden', background: '#0A0A0F', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div style={{ width: '100%', height: '100vh', position: 'relative', overflow: 'hidden', background: '#0A0A0F', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", touchAction: 'none' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         .nav-item { transition: background 150ms ease, border-color 150ms ease !important; }
@@ -1075,7 +1112,7 @@ function PermitMapInner({ activeUser, onLogout }) {
       `}</style>
 
       {/* Map — full viewport */}
-      <div ref={mapContainer} style={{ position: 'absolute', inset: 0 }} />
+      <div ref={mapContainer} style={{ position: 'absolute', inset: 0, touchAction: 'none' }} />
 
       {/* Loading indicator */}
       {permitsLoading && (
@@ -1111,6 +1148,7 @@ function PermitMapInner({ activeUser, onLogout }) {
         paddingLeft: 20,
         paddingRight: 16,
         gap: 12,
+        touchAction: 'none',
       }}>
         {/* Center wordmark */}
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
@@ -1165,6 +1203,7 @@ function PermitMapInner({ activeUser, onLogout }) {
           flexDirection: 'column',
           transition: 'width 200ms ease',
           overflow: 'hidden',
+          touchAction: 'none',
         }}
       >
         {/* Logo area */}
@@ -1371,6 +1410,7 @@ function PermitMapInner({ activeUser, onLogout }) {
             overflowY: 'auto',
             paddingBottom: 24,
             transition: 'left 200ms ease',
+            touchAction: 'none',
           }}
         >
           {/* City filter */}
@@ -1495,6 +1535,7 @@ function PermitMapInner({ activeUser, onLogout }) {
           paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
           maxHeight: '65vh',
           overflowY: 'auto',
+          touchAction: 'none',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <span style={{ color: D.text, fontWeight: 800, fontSize: 17 }}>📍 Route — {routeList.length} stop{routeList.length !== 1 ? 's' : ''}</span>
@@ -1531,11 +1572,8 @@ function PermitMapInner({ activeUser, onLogout }) {
       {selected && (
         <div
           onTouchStart={e => { e.currentTarget._swipeY = e.touches[0].clientY; }}
-          onTouchEnd={e => {
-            const startY = e.currentTarget._swipeY || 0;
-            const dy = e.changedTouches[0].clientY - startY;
-            if (dy > 60) closeDetail();
-          }}
+          onTouchMove={e => { e.preventDefault(); }}
+          onTouchEnd={e => { const startY = e.currentTarget._swipeY || 0; const dy = e.changedTouches[0].clientY - startY; if (dy > 60) closeDetail(); }}
           style={{
             position: 'fixed',
             bottom: 0,
@@ -1551,6 +1589,7 @@ function PermitMapInner({ activeUser, onLogout }) {
             paddingBottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
             maxHeight: '35vh',
             overflowY: 'auto',
+            touchAction: 'pan-y',
           }}>
           <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', margin: '0 auto 10px' }} />
 
@@ -1678,6 +1717,7 @@ function PermitMapInner({ activeUser, onLogout }) {
             borderLeft: '4px solid #00D47E',
             borderRadius: 12,
             padding: 14,
+            touchAction: 'none',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 10 }}>
               <div style={{ flex: 1 }}>
@@ -1752,6 +1792,7 @@ function PermitMapInner({ activeUser, onLogout }) {
           borderTop: '1px solid rgba(255,255,255,0.08)',
           alignItems: 'stretch',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          touchAction: 'none',
         }}
       >
         {[

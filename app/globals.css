@@ -9,6 +9,7 @@ html, body {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
   /* Safe area handled per-component */
 }
 
@@ -36,5 +37,8 @@ html, body {
 .mapboxgl-ctrl-bottom-right { bottom: calc(20px + env(safe-area-inset-bottom)) !important; right: 12px !important; }
 
 /* Prevent map canvas zoom on double tap / fix pinch zoom */
-.mapboxgl-canvas { touch-action: none; }
-.mapboxgl-canvas-container { touch-action: none; }
+.mapboxgl-map { touch-action: none; }
+.mapboxgl-canvas-container,
+.mapboxgl-canvas {
+  touch-action: none !important;
+}

@@ -122,6 +122,76 @@ function parsePermitsFromPDF(text, filename) {
   //   OWNERNAME$VALUE
   //   SUBDIVISION
 
+  const BUILDER_NAME_MAP = {
+    'SCHUBERMITCHELLHOMES': 'Schuber Mitchell Homes',
+    'SCHUBERMITCHELL': 'Schuber Mitchell Homes',
+    'DRHORTON': 'DR Horton',
+    'DRHORTONHOMES': 'DR Horton',
+    'SIMMONSHOMES': 'Simmons Homes',
+    'EXECUTIVEHOMES': 'Executive Homes',
+    'CAPITALHOMES': 'Capital Homes',
+    'RAUSCHCOLEMANHOMES': 'Rausch Coleman Homes',
+    'RAUSCH-COLEMANHOMES': 'Rausch Coleman Homes',
+    'LENNAR': 'Lennar',
+    'LENNARHOMES': 'Lennar',
+    'HOFFMANHOMES': 'Hoffman Homes',
+    'RUSTICHOMES': 'Rustic Homes',
+    'TRUENORTHHOMES': 'True North Homes',
+    'ADMIREHOMES': 'Admire Homes',
+    'BLACKWATERSTRUCTURES': 'Blackwater Structures',
+    'COZORTCUSTOMHOMES': 'Cozort Custom Homes',
+    'COZORTCONSTRUCTION': 'Cozort Construction',
+    'MONEYHOMES': 'Money Homes',
+    'CLASSICPROPERTIES': 'Classic Properties',
+    'GIBSONHOMES': 'Gibson Homes',
+    'SOUTHERNHOMES': 'Southern Homes',
+    'HIGHWESTHOMES': 'High West Homes',
+    'MC2HOMES': 'MC2 Homes',
+    'HENSLEYCUSTOMHOMES': 'Hensley Custom Homes',
+    'TOCARACUSTOMHOMES': 'Tocara Custom Homes',
+    'CRESCENTHOMEBUILDERS': 'Crescent Home Builders',
+    'BORNAGAINRESTORED': 'Born Again Restored',
+    'KETCHUMPROPERTIES': 'Ketchum Properties',
+    'BGREENHOMES': 'B Green Homes',
+    'LABELLAHOMES': 'La Bella Homes',
+    'NORTHSTARCONTRACTORS': 'Northstar Contractors',
+    'HOLMSWEETHOME': 'Holm Sweet Home',
+    'SMALYGOPROPERTIES': 'Smalygo Properties',
+    'S&JHOMES': 'S&J Homes',
+    'DMPCUSTOMHOMES': 'DMP Custom Homes',
+    'EJPHOMES': 'EJP Homes',
+    'CAZECACONSTRUCTION': 'Cazeca Construction',
+    'KEETERINVESTMENTS': 'Keeter Investments',
+    'BDPROPERTIES': 'BD Properties',
+    'CHRISBURTONHOMES': 'Chris Burton Homes',
+    'DODSONBUILDINGGROUP': 'Dodson Building Group',
+    'ENVISIONHOMES': 'Envision Homes',
+    'JONATHANPRIDE': 'Jonathan Pride',
+    'LEESIGNATUREPROPERTIES': 'Lee Signature Properties',
+    'ALIGNDESIGNGROUP': 'Align Design Group',
+    'BUTLERHOMES': 'Butler Homes',
+    'BELAND&CATTLE': 'Beland & Cattle',
+    'IDEALHOMES': 'Ideal Homes',
+    'HOMESBYABER': 'Homes by Aber',
+    'CONCEPTBUILDERS': 'Concept Builders',
+    'ABBYHOMES': 'Abbey Homes',
+    'MATHISHOMES': 'Mathis Homes',
+  };
+
+  function cleanBuilder(raw, cities) {
+    const key = raw.toUpperCase().replace(/\s+/g, '').trim();
+    if (BUILDER_NAME_MAP[key]) return BUILDER_NAME_MAP[key];
+    // fallback: strip city, title-case
+    let b = raw.toUpperCase();
+    for (const cityKey of Object.keys(cities)) {
+      if (b.endsWith(cityKey)) b = b.slice(0, -cityKey.length).trim();
+    }
+    return b.split(/(?=[A-Z][a-z])|(?<=[a-z])(?=[A-Z])|\s+/)
+      .filter(Boolean)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ').trim();
+  }
+
   const knownCities = {
     'BROKENARROW': 'Broken Arrow', 'TULSA': 'Tulsa', 'BIXBY': 'Bixby',
     'OWASSO': 'Owasso', 'JENKS': 'Jenks', 'CLAREMORE': 'Claremore',
@@ -175,6 +245,8 @@ function parsePermitsFromPDF(text, filename) {
           address = address.slice(0, -c.length).trim();
         }
       }
+      // Normalize to UPPERCASE to match existing permit format
+      address = address.toUpperCase();
 
       // City — find which jurisdiction section this entry is in
       const textBefore = text.substring(0, match.index);
@@ -190,11 +262,7 @@ function parsePermitsFromPDF(text, filename) {
       for (const c of Object.keys(knownCities)) {
         builderRaw = builderRaw.replace(new RegExp(c + '$', 'i'), '').trim();
       }
-      let builder = builderRaw
-        .replace(/([a-z])([A-Z])/g, '$1 $2')
-        .replace(/([A-Z]{2,})([A-Z][a-z])/g, '$1 $2')
-        .replace(/\s+/g, ' ')
-        .trim();
+      let builder = cleanBuilder(builderRaw, knownCities);
 
       if (!address || address.length < 5) continue;
 
