@@ -50,6 +50,14 @@ function formatPrice(p) {
   return '$' + Number(p).toLocaleString();
 }
 
+function isPriorityLead(lead) {
+  const email = lead.agentEmail;
+  const phone = lead.agentPhone;
+  const hasEmail = email && email !== 'N/A' && email.trim() !== '';
+  const hasPhone918 = phone && phone !== 'N/A' && phone.trim() !== '' && phone.includes('918');
+  return hasEmail || hasPhone918;
+}
+
 // ─── Count-up Hook ────────────────────────────────────────────────────────────
 function useCountUp(target, duration = 1200) {
   const [val, setVal] = useState(0);
@@ -128,6 +136,7 @@ function LeadCard({ lead, onClick, isNew: flashNew }) {
   const ts = getLeadTs(lead);
   const isNewToday = isNew24h({ toMillis: () => ts });
   const [flash, setFlash] = useState(flashNew);
+  const priority = isPriorityLead(lead);
 
   useEffect(() => {
     if (flash) { const t = setTimeout(() => setFlash(false), 600); return () => clearTimeout(t); }
@@ -139,13 +148,29 @@ function LeadCard({ lead, onClick, isNew: flashNew }) {
       whileHover={{ y: -2 }}
       style={{
         display: 'flex', alignItems: 'stretch', cursor: 'pointer',
+        position: 'relative',
         background: flash ? 'rgba(0,212,126,0.08)' : 'rgba(255,255,255,0.04)',
-        border: flash ? '1px solid rgba(0,212,126,0.5)' : '1px solid rgba(255,255,255,0.07)',
+        border: priority ? '2px solid #00D47E' : (flash ? '1px solid rgba(0,212,126,0.5)' : '1px solid rgba(255,255,255,0.07)'),
         borderRadius: 12, overflow: 'hidden', marginBottom: 8,
         transition: 'all 150ms ease',
-        boxShadow: flash ? '0 0 12px rgba(0,212,126,0.15)' : 'none',
+        animation: priority ? 'priorityPulse 2s ease-in-out infinite' : (flash ? undefined : undefined),
+        boxShadow: flash && !priority ? '0 0 12px rgba(0,212,126,0.15)' : undefined,
       }}
     >
+      {/* Priority badge */}
+      {priority && (
+        <div style={{
+          position: 'absolute', top: 6, right: 56,
+          fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
+          color: '#00D47E', background: 'rgba(0,212,126,0.12)',
+          border: '1px solid rgba(0,212,126,0.35)',
+          borderRadius: 4, padding: '2px 6px',
+          zIndex: 2, pointerEvents: 'none',
+        }}>
+          ⚡ PRIORITY
+        </div>
+      )}
+
       {/* Left accent bar */}
       <div style={{ width: 3, background: accentColor, flexShrink: 0 }} />
 
@@ -392,15 +417,22 @@ function LeadDetail({ lead, onClose, onStatusChange }) {
                     📢 {lead.groupName || lead.group}
                   </span>
                 )}
-                {(lead?.postUrl || lead?.url) && (
-                  <a href={lead.postUrl || lead.url} target="_blank" rel="noopener noreferrer"
-                    style={{
-                      fontSize: 12, fontWeight: 700, color: '#00D47E',
-                      textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4,
-                    }}>
-                    🔗 View Post →
-                  </a>
-                )}
+                {(lead?.postUrl || lead?.url) && (() => {
+                  const href = lead.postUrl || lead.url;
+                  const isDirectPost = href.includes('/posts/') || href.includes('/permalink/') || href.includes('story_fbid') || href.includes('fbid=');
+                  return (
+                    <a href={href} target="_blank" rel="noopener noreferrer"
+                      style={{
+                        fontSize: 13, fontWeight: 700, color: '#fff',
+                        textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: isDirectPost ? '#00D47E' : 'rgba(0,212,126,0.15)',
+                        border: `1px solid ${isDirectPost ? '#00D47E' : 'rgba(0,212,126,0.4)'}`,
+                        padding: '6px 14px', borderRadius: 8,
+                      }}>
+                      🔗 {isDirectPost ? 'View Post →' : 'View Group →'}
+                    </a>
+                  );
+                })()}
               </div>
             </Section>
 
@@ -676,6 +708,10 @@ export default function LeadHub({ onClose }) {
     if (filter === 'contacted') return l.status === 'contacted';
     if (filter === 'quoted') return l.status === 'quoted';
     return true;
+  }).sort((a, b) => {
+    const pa = isPriorityLead(a) ? 1 : 0;
+    const pb = isPriorityLead(b) ? 1 : 0;
+    return pb - pa; // priority leads first, preserve existing order within groups
   });
 
   // ── Stats ─────────────────────────────────────────────────────────────────
@@ -743,6 +779,10 @@ export default function LeadHub({ onClose }) {
         @keyframes pulseDot {
           0%, 100% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.4); opacity: 0.4; }
+        }
+        @keyframes priorityPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(0, 212, 126, 0.0), inset 0 0 0 1px #00D47E; }
+          50% { box-shadow: 0 0 16px 4px rgba(0, 212, 126, 0.35), inset 0 0 0 1px #00D47E; }
         }
       `}</style>
 

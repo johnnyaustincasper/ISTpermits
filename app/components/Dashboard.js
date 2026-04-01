@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { PERMITS } from '../../lib/permits';
 import { PHASES, INSULATION_TYPES, getFollowUpReminders, completeReminder } from '../../lib/phaseTracking';
 import { getVisitsForSalesman } from '../../lib/visitTracking';
 
@@ -51,7 +50,7 @@ export default function Dashboard({ salesman, permits, onClose, onSelectBuilder 
   // Builder analytics
   const builderStats = useMemo(() => {
     const stats = {};
-    PERMITS.forEach(p => {
+    (permits || []).forEach(p => {
       if (!stats[p.builder]) {
         stats[p.builder] = {
           builder: p.builder,

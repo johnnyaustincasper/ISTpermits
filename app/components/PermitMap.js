@@ -7,10 +7,23 @@ import { CITIES, CITY_COORDS } from '../../lib/permits';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import { geocodePermits, applyGeocodedCoords, clearGeocodeCache } from '../../lib/geocode';
+import {
+  loadNotes, saveNotes,
+  loadStatuses, saveStatuses,
+  loadRoute, saveRoute,
+  loadVisitLog, saveVisitLog,
+  loadDailyRoutes, saveDailyRoutes,
+  loadSession, saveSession,
+  subscribeUserState,
+  buildVisitEntry,
+} from '../../lib/userState';
 import VisitModal from './VisitModal';
 import Dashboard from './Dashboard';
 import LeadHub from './LeadHub';
 import { LIQUID_GLASS, glassStyle, glassButton, glassButtonGhost } from '../../lib/theme';
+import {
+  getSalesmanForPermit, isNewThisWeek, calculatePermitScore, getScoreColor, SALESMAN_COLORS,
+} from '../../lib/territories';
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const T = LIQUID_GLASS;
@@ -46,12 +59,6 @@ function weekToMonth(week) {
   const m = parseInt((week || '').match(/(\d{1,2})[\/\-]/)?.[1] || '0');
   return (m >= 1 && m <= 12) ? m : 0;
 }
-const NOTES_KEY = (user) => `ist-permit-notes-${user}`;
-const ROUTE_KEY = (user) => `ist-route-list-${user}`;
-const STATUS_KEY = (user) => `ist-permit-status-${user}`;
-const VISIT_LOG_KEY = (user) => `ist-visit-log-${user}`;
-const DAILY_ROUTES_KEY = (user) => `ist-daily-routes-${user}`;
-const SESSION_KEY = 'ist-active-user';
 const SALESMEN = ['Johnny', 'Jordan', 'Skip'];
 
 const STATUSES = [
@@ -61,57 +68,19 @@ const STATUSES = [
   { key: 'pass',      label: 'Not Interested', color: '#6b7280', dot: '#9ca3af' },
 ];
 
-function loadStatuses(user) {
-  if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem(STATUS_KEY(user)) || '{}'); } catch { return {}; }
-}
-function saveStatuses(user, s) {
-  if (typeof window !== 'undefined') localStorage.setItem(STATUS_KEY(user), JSON.stringify(s));
-}
-function loadNotes(user) {
-  if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem(NOTES_KEY(user)) || '{}'); } catch { return {}; }
-}
-function saveNotes(user, n) {
-  if (typeof window !== 'undefined') localStorage.setItem(NOTES_KEY(user), JSON.stringify(n));
-}
-function loadRoute(user) {
-  if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem(ROUTE_KEY(user)) || '[]'); } catch { return []; }
-}
-function saveRoute(user, r) {
-  if (typeof window !== 'undefined') localStorage.setItem(ROUTE_KEY(user), JSON.stringify(r));
-}
-function loadSession() {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(SESSION_KEY) || null;
-}
-function saveSession(user) {
-  if (typeof window !== 'undefined') localStorage.setItem(SESSION_KEY, user || '');
-}
-function loadVisitLog(user) {
-  if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem(VISIT_LOG_KEY(user)) || '[]'); } catch { return []; }
-}
-function saveVisitLog(user, log) {
-  if (typeof window !== 'undefined') localStorage.setItem(VISIT_LOG_KEY(user), JSON.stringify(log));
-}
-function logVisit(user, permit, statusKey) {
-  if (!permit || !statusKey || statusKey === 'pass') return;
-  const log = loadVisitLog(user);
+function logVisitEntry(user, permit, statusKey, currentLog) {
+  if (!permit || !statusKey || statusKey === 'pass') return currentLog;
   const today = new Date().toISOString().slice(0, 10);
-  const existingIdx = log.findIndex(e => e.permitId === String(permit.id) && e.date === today);
-  const entry = { permitId: String(permit.id), builder: permit.builder, address: permit.address, city: permit.city || '', status: statusKey, date: today, ts: Date.now() };
-  if (existingIdx >= 0) log[existingIdx] = entry;
-  else log.unshift(entry);
-  saveVisitLog(user, log.slice(0, 500));
-}
-function loadDailyRoutes(user) {
-  if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem(DAILY_ROUTES_KEY(user)) || '{}'); } catch { return {}; }
-}
-function saveDailyRoutes(user, routes) {
-  if (typeof window !== 'undefined') localStorage.setItem(DAILY_ROUTES_KEY(user), JSON.stringify(routes));
+  const existingIdx = currentLog.findIndex(e => e.permitId === String(permit.id) && e.date === today);
+  const entry = buildVisitEntry(permit, statusKey);
+  let updated;
+  if (existingIdx >= 0) {
+    updated = [...currentLog];
+    updated[existingIdx] = entry;
+  } else {
+    updated = [entry, ...currentLog].slice(0, 500);
+  }
+  return updated;
 }
 
 // ─── Login Screen ─────────────────────────────────────────────────────────────
@@ -296,6 +265,9 @@ function buildGeoJSON(permits, statuses = {}) {
     type: 'FeatureCollection',
     features: permits.filter(p => p.lat !== 0 && p.lng !== 0).map(p => {
       const st = statuses[p.id];
+      const salesman = getSalesmanForPermit(p);
+      const isNew = isNewThisWeek(p.week) ? 1 : 0;
+      const score = calculatePermitScore(p, st || null);
       return {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
@@ -304,7 +276,11 @@ function buildGeoJSON(permits, statuses = {}) {
           sqft: p.sqft, value: p.value, week: p.week, production: p.production,
           phone: p.phone, subdivision: p.subdivision, contact: p.contact,
           radius: Math.max(14, Math.sqrt((p.value || 50000) / 4000)),
-          dotColor: st ? STATUS_COLORS[st] : (p.production ? '#ea580c' : '#2563eb'),
+          // Status color overrides salesman color; fallback to salesman color
+          dotColor: st ? STATUS_COLORS[st] : (SALESMAN_COLORS[salesman] || '#2563eb'),
+          salesman,
+          isNew,
+          score,
         },
       };
     }),
@@ -329,6 +305,8 @@ function addLayers(map, data, onClickPermit) {
     return;
   }
 
+  if (map.getLayer('permits-new-badge')) map.removeLayer('permits-new-badge');
+  if (map.getLayer('permits-new-ring')) map.removeLayer('permits-new-ring');
   if (map.getLayer('permits-hit')) map.removeLayer('permits-hit');
   if (map.getLayer('permits-labels')) map.removeLayer('permits-labels');
   if (map.getLayer('permits-main')) map.removeLayer('permits-main');
@@ -387,6 +365,42 @@ function addLayers(map, data, onClickPermit) {
     },
   });
 
+  // "NEW" glow ring for fresh permits (issued last 7 days)
+  map.addLayer({
+    id: 'permits-new-ring',
+    type: 'circle',
+    source: 'permits',
+    filter: ['==', ['get', 'isNew'], 1],
+    paint: {
+      'circle-radius': ['+', ['get', 'radius'], 5],
+      'circle-color': 'rgba(0,0,0,0)',
+      'circle-opacity': 0,
+      'circle-stroke-width': 2.5,
+      'circle-stroke-color': '#00D47E',
+      'circle-stroke-opacity': 0.8,
+    },
+  }, 'permits-main');
+
+  // "NEW" badge text above fresh permit pins
+  map.addLayer({
+    id: 'permits-new-badge',
+    type: 'symbol',
+    source: 'permits',
+    filter: ['==', ['get', 'isNew'], 1],
+    layout: {
+      'text-field': '★ NEW',
+      'text-size': 10,
+      'text-offset': [0, -2.6],
+      'text-anchor': 'bottom',
+      'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+    },
+    paint: {
+      'text-color': '#00D47E',
+      'text-halo-color': 'rgba(0,0,0,0.9)',
+      'text-halo-width': 1.5,
+    },
+  });
+
   // Click individual permits
   if (map._permitClick) map.off('click', 'permits-hit', map._permitClick);
   map._permitClick = (e) => {
@@ -404,9 +418,14 @@ function addLayers(map, data, onClickPermit) {
 function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addToDailyRoute, removeFromDailyRoute, myRoute }) {
   const allDailyRoutes = useMemo(() => {
     const result = {};
-    SALESMEN.forEach(name => { result[name] = loadDailyRoutes(name); });
+    // Use the passed dailyRoutes for activeUser, load from localStorage for others
+    SALESMEN.forEach(name => {
+      if (name === activeUser) result[name] = dailyRoutes;
+      else result[name] = loadDailyRoutes(name);
+    });
     return result;
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dailyRoutes, activeUser]);
   const today = new Date();
   const dow = today.getDay();
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -437,7 +456,7 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
   teamData.forEach(({ name, statuses, route }) => {
     Object.entries(statuses).forEach(([id, status]) => {
       if (status === 'pass') return;
-      const p = permits.find(p => String(p.id) === String(id)); if (!p) return;
+      const p = allPermits.find(p => String(p.id) === String(id)); if (!p) return;
       const key = p.builder.toLowerCase().trim();
       if (!builderMap[key]) builderMap[key] = [];
       builderMap[key].push({ user: name, permitId: id, address: p.address, status, builder: p.builder });
@@ -521,7 +540,7 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
     const isOwn = name === activeUser;
     const d = new Date(dateStr + 'T12:00:00');
     const dayLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-    const filteredPermits = permits.filter(p => {
+    const filteredPermits = allPermits.filter(p => {
       if (!plannerSearch.trim()) return true;
       const q = plannerSearch.toLowerCase();
       return (p.builder || '').toLowerCase().includes(q) || (p.address || '').toLowerCase().includes(q) || (p.city || '').toLowerCase().includes(q);
@@ -695,7 +714,7 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
               <div style={{ padding: '10px 14px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: T.textSub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>📋 Active ({activeStatuses.length})</div>
                 {activeStatuses.slice(0, 5).map(([id, status]) => {
-                  const permit = permits.find(p => String(p.id) === String(id));
+                  const permit = allPermits.find(p => String(p.id) === String(id));
                   if (!permit) return null;
                   return (
                     <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: `1px solid ${T.cardBorder}` }}>
@@ -710,6 +729,163 @@ function TeamPage({ activeUser, onClose, permits: allPermits, dailyRoutes, addTo
             {activeStatuses.length === 0 && <div style={{ padding: '12px 14px', fontSize: 12, color: T.textMuted, fontStyle: 'italic' }}>No active builders yet.</div>}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Permit Score Badge ───────────────────────────────────────────────────────
+function ScoreBadge({ score }) {
+  const color = getScoreColor(score);
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: 28, height: 28, borderRadius: '50%',
+      background: `${color}22`, border: `1.5px solid ${color}`,
+      fontSize: 11, fontWeight: 800, color, flexShrink: 0,
+    }}>{score}</span>
+  );
+}
+
+// ─── Permit List ──────────────────────────────────────────────────────────────
+function PermitList({ permits, statuses, activeUser, onClose, onSelectPermit }) {
+  const [sortBy, setSortBy] = useState('score');
+  const [filterNew, setFilterNew] = useState(false);
+  const [filterMine, setFilterMine] = useState(false);
+
+  const processed = permits.map(p => ({
+    ...p,
+    salesman: getSalesmanForPermit(p),
+    isNew: isNewThisWeek(p.week),
+    score: calculatePermitScore(p, statuses[p.id] || null),
+  }));
+
+  const filtered = processed
+    .filter(p => !filterNew || p.isNew)
+    .filter(p => !filterMine || p.salesman === activeUser);
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'score') return b.score - a.score;
+    if (sortBy === 'new') {
+      if (a.isNew !== b.isNew) return a.isNew ? -1 : 1;
+      return b.score - a.score;
+    }
+    if (sortBy === 'value') return (Number(b.value) || 0) - (Number(a.value) || 0);
+    return 0;
+  });
+
+  const newCount = processed.filter(p => p.isNew).length;
+  const myCount = processed.filter(p => p.salesman === activeUser).length;
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 50,
+      background: '#0A0A0F', display: 'flex', flexDirection: 'column',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      paddingTop: 'env(safe-area-inset-top,0px)',
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '14px 16px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+        background: 'rgba(10,10,15,0.9)', flexShrink: 0,
+      }}>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#F0F0F5', padding: '0 4px', fontFamily: 'inherit' }}>←</button>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 17, fontWeight: 800, color: '#F0F0F5' }}>📋 Permits</div>
+          <div style={{ fontSize: 11, color: 'rgba(240,240,245,0.4)', marginTop: 1 }}>
+            {sorted.length} showing · {newCount} new this week · {myCount} mine
+          </div>
+        </div>
+      </div>
+
+      {/* Filter + sort bar */}
+      <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button onClick={() => setFilterNew(v => !v)} style={{
+          padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'inherit',
+          background: filterNew ? 'rgba(0,212,126,0.12)' : 'rgba(255,255,255,0.04)',
+          border: filterNew ? '1px solid rgba(0,212,126,0.4)' : '1px solid rgba(255,255,255,0.08)',
+          color: filterNew ? '#00D47E' : 'rgba(240,240,245,0.5)',
+        }}>★ New This Week</button>
+        <button onClick={() => setFilterMine(v => !v)} style={{
+          padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'inherit',
+          background: filterMine ? 'rgba(0,212,126,0.12)' : 'rgba(255,255,255,0.04)',
+          border: filterMine ? '1px solid rgba(0,212,126,0.4)' : '1px solid rgba(255,255,255,0.08)',
+          color: filterMine ? '#00D47E' : 'rgba(240,240,245,0.5)',
+        }}>👤 My Permits</button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+          {[['score','⚡ Score'],['new','★ Newest'],['value','$ Value']].map(([k, label]) => (
+            <button key={k} onClick={() => setSortBy(k)} style={{
+              padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+              background: sortBy === k ? 'rgba(0,212,126,0.1)' : 'transparent',
+              border: sortBy === k ? '1px solid rgba(0,212,126,0.4)' : '1px solid rgba(255,255,255,0.08)',
+              color: sortBy === k ? '#00D47E' : 'rgba(240,240,245,0.4)',
+            }}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* List */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px 32px' }}>
+        {sorted.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(240,240,245,0.3)', fontSize: 14 }}>No permits match filters</div>
+        )}
+        {sorted.map(p => {
+          const sColor = SALESMAN_COLORS[p.salesman] || '#2563eb';
+          const scoreColor = getScoreColor(p.score);
+          const st = statuses[p.id];
+          return (
+            <div key={p.id} onClick={() => onSelectPermit(p)} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', marginBottom: 6,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderLeft: `3px solid ${sColor}`,
+              borderRadius: 10, cursor: 'pointer',
+            }}>
+              {/* Score badge */}
+              <ScoreBadge score={p.score} />
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#F0F0F5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.builder}
+                  </span>
+                  {p.isNew && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 800, letterSpacing: 0.5,
+                      padding: '1px 5px', borderRadius: 3,
+                      background: 'rgba(0,212,126,0.15)', color: '#00D47E',
+                      border: '1px solid rgba(0,212,126,0.3)', flexShrink: 0,
+                    }}>NEW</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(240,240,245,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.address?.split(',')[0]}{p.city ? ` · ${p.city}` : ''}{p.week ? ` · ${p.week}` : ''}
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 3, alignItems: 'center' }}>
+                  {Number(p.value) > 0 && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(240,240,245,0.55)' }}>${Number(p.value).toLocaleString()}</span>
+                  )}
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 3,
+                    background: `${sColor}18`, color: sColor,
+                    border: `1px solid ${sColor}33`,
+                  }}>{p.salesman}</span>
+                  {st && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 3,
+                      background: `${STATUS_COLORS[st]}18`, color: STATUS_COLORS[st],
+                    }}>{st.toUpperCase()}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -751,10 +927,29 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [dailyRoutes, setDailyRoutes] = useState(() => loadDailyRoutes(activeUser));
   const [statuses, setStatuses] = useState(() => loadStatuses(activeUser));
+  const [myPermitsOnly, setMyPermitsOnly] = useState(false);
+  const [newThisWeekOnly, setNewThisWeekOnly] = useState(false);
+  const [showPermitList, setShowPermitList] = useState(false);
+  const [visitLog, setVisitLog] = useState(() => loadVisitLog(activeUser));
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
 
   const handleSelectBuilder = (builderName) => {
     setSearchQuery(builderName);
   };
+
+  // Firestore real-time subscription for user state
+  useEffect(() => {
+    if (!activeUser) return;
+    const unsub = subscribeUserState(activeUser, {
+      onNotes: (notes) => setNotes(notes),
+      onStatuses: (statuses) => setStatuses(statuses),
+      onRoute: (permits) => setRouteList(permits),
+      onVisitLog: (entries) => setVisitLog(entries),
+      onDailyRoutes: (routes) => setDailyRoutes(routes),
+    });
+    return unsub;
+  }, [activeUser]);
 
   // Click-outside to collapse sidebar
   useEffect(() => {
@@ -827,16 +1022,22 @@ function PermitMapInner({ activeUser, onLogout }) {
   const saveNote = useCallback((id, text) => {
     const updated = { ...notes, [id]: text };
     setNotes(updated);
-    saveNotes(activeUser, updated);
+    saveNotes(activeUser, updated); // async Firestore write
   }, [notes, activeUser]);
 
   const setStatus = useCallback((id, statusKey, permit) => {
     setStatuses(prev => {
       const updated = statusKey ? { ...prev, [id]: statusKey } : Object.fromEntries(Object.entries(prev).filter(([k]) => k !== id));
-      saveStatuses(activeUser, updated);
+      saveStatuses(activeUser, updated); // async Firestore write
       return updated;
     });
-    if (permit && statusKey && statusKey !== 'pass') logVisit(activeUser, permit, statusKey);
+    if (permit && statusKey && statusKey !== 'pass') {
+      setVisitLog(prev => {
+        const updated = logVisitEntry(activeUser, permit, statusKey, prev || []);
+        saveVisitLog(activeUser, updated);
+        return updated;
+      });
+    }
   }, [activeUser]);
 
   const addToDailyRoute = useCallback((dateStr, permit) => {
@@ -844,7 +1045,7 @@ function PermitMapInner({ activeUser, onLogout }) {
       const day = prev[dateStr] || [];
       if (day.find(p => p.id === permit.id)) return prev;
       const updated = { ...prev, [dateStr]: [...day, permit] };
-      saveDailyRoutes(activeUser, updated);
+      saveDailyRoutes(activeUser, updated); // async Firestore write
       return updated;
     });
   }, [activeUser]);
@@ -852,7 +1053,7 @@ function PermitMapInner({ activeUser, onLogout }) {
   const removeFromDailyRoute = useCallback((dateStr, permitId) => {
     setDailyRoutes(prev => {
       const updated = { ...prev, [dateStr]: (prev[dateStr] || []).filter(p => p.id !== permitId) };
-      saveDailyRoutes(activeUser, updated);
+      saveDailyRoutes(activeUser, updated); // async Firestore write
       return updated;
     });
   }, [activeUser]);
@@ -861,7 +1062,7 @@ function PermitMapInner({ activeUser, onLogout }) {
     setRouteList(prev => {
       if (prev.find(p => p.id === permit.id)) return prev;
       const next = [...prev, permit];
-      saveRoute(activeUser, next);
+      saveRoute(activeUser, next); // async Firestore write
       return next;
     });
   }, [activeUser]);
@@ -869,7 +1070,7 @@ function PermitMapInner({ activeUser, onLogout }) {
   const removeFromRoute = useCallback((id) => {
     setRouteList(prev => {
       const next = prev.filter(p => p.id !== id);
-      saveRoute(activeUser, next);
+      saveRoute(activeUser, next); // async Firestore write
       return next;
     });
   }, [activeUser]);
@@ -922,9 +1123,11 @@ function PermitMapInner({ activeUser, onLogout }) {
           return false;
         }
       }
+      if (myPermitsOnly && getSalesmanForPermit(p) !== activeUser) return false;
+      if (newThisWeekOnly && !isNewThisWeek(p.week)) return false;
       return true;
     });
-  }, [permits, customOnly, currentCity, currentMonth, searchQuery]);
+  }, [permits, customOnly, currentCity, currentMonth, searchQuery, myPermitsOnly, newThisWeekOnly, activeUser]);
 
   const geoJSON = useMemo(() => buildGeoJSON(filtered, statuses), [filtered, statuses]);
 
@@ -1158,11 +1361,60 @@ function PermitMapInner({ activeUser, onLogout }) {
           </span>
         </div>
 
-        {/* Right: salesman name + geocoding indicator + logout */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          {geocoding && (
-            <span style={{ fontSize: 11, color: D.textMuted, whiteSpace: 'nowrap' }}>Geocoding…</span>
-          )}
+        {/* Right: sync button + salesman name + logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {/* Sync permits button */}
+          <button
+            onClick={async () => {
+              setSyncing(true);
+              setSyncMsg('');
+              try {
+                const res = await fetch('/api/permits/sync', { method: 'POST' });
+                const data = await res.json();
+                if (data.ok) {
+                  setSyncMsg(data.synced > 0 ? `✓ +${data.synced} permits` : data.relevant > 0 ? '✓ Up to date' : '✓ No new permits');
+                  if (data.synced > 0) {
+                    // Reload permits from Firestore
+                    const { getDocs, collection: col } = await import('firebase/firestore');
+                    const { db: firestore } = await import('../../lib/firebase');
+                    const snap = await getDocs(col(firestore, 'permits'));
+                    setPermits(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                  }
+                } else {
+                  setSyncMsg('⚠ ' + (data.message || 'Sync failed').slice(0, 40));
+                }
+              } catch (err) {
+                setSyncMsg('⚠ Sync error');
+              } finally {
+                setSyncing(false);
+                setTimeout(() => setSyncMsg(''), 4000);
+              }
+            }}
+            disabled={syncing}
+            title="Sync live Tulsa permits"
+            style={{
+              background: 'rgba(0,212,126,0.08)',
+              border: '1px solid rgba(0,212,126,0.2)',
+              borderRadius: 7,
+              color: syncing ? D.textMuted : '#00D47E',
+              cursor: syncing ? 'default' : 'pointer',
+              padding: '5px 10px',
+              fontSize: 11,
+              fontWeight: 700,
+              fontFamily: 'inherit',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}
+          >
+            {syncing ? (
+              <><span style={{ display: 'inline-block', animation: 'spin 0.8s linear infinite' }}>↻</span> Syncing…</>
+            ) : syncMsg ? (
+              syncMsg
+            ) : (
+              <>↻ Sync</>
+            )}
+          </button>
           <span style={{ fontSize: 13, fontWeight: 600, color: D.textSub, whiteSpace: 'nowrap' }}>{activeUser}</span>
           <span style={{ fontSize: 12, color: D.textMuted }}>
             {filtered.length} permits
@@ -1447,6 +1699,53 @@ function PermitMapInner({ activeUser, onLogout }) {
 
           <div style={{ height: 1, background: D.border }} />
 
+          {/* Territory & New-this-week filters */}
+          <div style={{ padding: '14px 14px 10px' }}>
+            <div style={{ fontSize: 10, color: D.textMuted, letterSpacing: 2, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase' }}>Quick Filters</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={() => setMyPermitsOnly(v => !v)} style={{
+                padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                background: myPermitsOnly ? 'rgba(0,212,126,0.1)' : 'rgba(255,255,255,0.04)',
+                border: myPermitsOnly ? '1px solid rgba(0,212,126,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                color: myPermitsOnly ? '#00D47E' : D.textSub,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: SALESMAN_COLORS[activeUser] || '#00D47E', flexShrink: 0 }} />
+                My Permits ({activeUser})
+              </button>
+              <button onClick={() => setNewThisWeekOnly(v => !v)} style={{
+                padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                background: newThisWeekOnly ? 'rgba(0,212,126,0.1)' : 'rgba(255,255,255,0.04)',
+                border: newThisWeekOnly ? '1px solid rgba(0,212,126,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                color: newThisWeekOnly ? '#00D47E' : D.textSub,
+              }}>
+                ★ New This Week
+              </button>
+              <button onClick={() => { setShowPermitList(true); setPanelOpen(false); }} style={{
+                padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: D.textSub,
+              }}>
+                📋 View as List ›
+              </button>
+            </div>
+            {/* Salesman territory legend */}
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {['Johnny','Jordan','Skip'].map(name => (
+                <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 9, height: 9, borderRadius: '50%', background: SALESMAN_COLORS[name], flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: D.textMuted }}>{name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: D.border }} />
+
           {/* Search + Legend */}
           <div style={{ padding: '14px 14px 10px' }}>
             <div style={{ fontSize: 10, color: D.textMuted, letterSpacing: 2, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase' }}>Search & Legend</div>
@@ -1595,11 +1894,28 @@ function PermitMapInner({ activeUser, onLogout }) {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: T.text, lineHeight: 1.1 }}>{selected.builder}</div>
-              <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>{selected.address}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: T.text, lineHeight: 1.1 }}>{selected.builder}</div>
+                {isNewThisWeek(selected.week) && (
+                  <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: '2px 6px', borderRadius: 3, background: 'rgba(0,212,126,0.15)', color: '#00D47E', border: '1px solid rgba(0,212,126,0.3)', flexShrink: 0 }}>NEW</span>
+                )}
+              </div>
+              <div style={{ fontSize: 12, color: T.textMuted }}>{selected.address}</div>
               {selected.week && (
                 <div style={{ fontSize: 11, color: T.textSub, marginTop: 4, fontWeight: 600 }}>Week: {selected.week}</div>
               )}
+              {(() => {
+                const salesman = getSalesmanForPermit(selected);
+                const sColor = SALESMAN_COLORS[salesman] || '#2563eb';
+                const score = calculatePermitScore(selected, statuses[selected.id] || null);
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: `${sColor}18`, color: sColor, border: `1px solid ${sColor}33` }}>{salesman}</span>
+                    <ScoreBadge score={score} />
+                    <span style={{ fontSize: 10, color: T.textMuted }}>priority</span>
+                  </div>
+                );
+              })()}
             </div>
             <button onClick={closeDetail} style={{ ...ghostBtn, marginLeft: 8, flexShrink: 0, padding: '4px 8px' }}>✕</button>
           </div>
@@ -1738,6 +2054,17 @@ function PermitMapInner({ activeUser, onLogout }) {
           </div>
         );
       })()}
+
+      {/* ── Permit List ──────────────────────────────────────────────────────── */}
+      {showPermitList && (
+        <PermitList
+          permits={filtered}
+          statuses={statuses}
+          activeUser={activeUser}
+          onClose={() => setShowPermitList(false)}
+          onSelectPermit={(p) => { setShowPermitList(false); selectPermit(p); }}
+        />
+      )}
 
       {/* ── Team Full Page ───────────────────────────────────────────────────── */}
       {teamView && (
