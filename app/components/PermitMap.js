@@ -260,7 +260,7 @@ function LoginScreen({ onLogin }) {
 
 const STATUS_COLORS = { called: '#f59e0b', quoted: '#8b5cf6', won: '#16a34a', pass: '#9ca3af' };
 
-function buildGeoJSON(permits, statuses = {}) {
+function buildGeoJSON(permits, statuses = {}, showTerritories = false) {
   return {
     type: 'FeatureCollection',
     features: permits.filter(p => p.lat !== 0 && p.lng !== 0).map(p => {
@@ -268,6 +268,10 @@ function buildGeoJSON(permits, statuses = {}) {
       const salesman = getSalesmanForPermit(p);
       const isNew = isNewThisWeek(p.week) ? 1 : 0;
       const score = calculatePermitScore(p, st || null);
+      // When showTerritories is on, always use salesman color; otherwise status overrides
+      const dotColor = (showTerritories || !st)
+        ? (SALESMAN_COLORS[salesman] || '#2563eb')
+        : STATUS_COLORS[st];
       return {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
@@ -276,8 +280,7 @@ function buildGeoJSON(permits, statuses = {}) {
           sqft: p.sqft, value: p.value, week: p.week, production: p.production,
           phone: p.phone, subdivision: p.subdivision, contact: p.contact,
           radius: Math.max(14, Math.sqrt((p.value || 50000) / 4000)),
-          // Status color overrides salesman color; fallback to salesman color
-          dotColor: st ? STATUS_COLORS[st] : (SALESMAN_COLORS[salesman] || '#2563eb'),
+          dotColor,
           salesman,
           isNew,
           score,
@@ -933,6 +936,7 @@ function PermitMapInner({ activeUser, onLogout }) {
   const [visitLog, setVisitLog] = useState(() => loadVisitLog(activeUser));
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
+  const [showTerritories, setShowTerritories] = useState(false);
 
   const handleSelectBuilder = (builderName) => {
     setSearchQuery(builderName);
@@ -1129,7 +1133,7 @@ function PermitMapInner({ activeUser, onLogout }) {
     });
   }, [permits, customOnly, currentCity, currentMonth, searchQuery, myPermitsOnly, newThisWeekOnly, activeUser]);
 
-  const geoJSON = useMemo(() => buildGeoJSON(filtered, statuses), [filtered, statuses]);
+  const geoJSON = useMemo(() => buildGeoJSON(filtered, statuses, showTerritories), [filtered, statuses, showTerritories]);
 
   useEffect(() => {
     if (!token || mapRef.current) return;
@@ -2101,6 +2105,76 @@ function PermitMapInner({ activeUser, onLogout }) {
       {/* ── Lead Hub ──────────────────────────────────────────────────────────── */}
       {showLeadHub && (
         <LeadHub onClose={() => setShowLeadHub(false)} />
+      )}
+
+      {/* ── Territory Toggle (floating map control) ─────────────────────────── */}
+      {!selected && !showRoutePanel && (
+        <div style={{
+          position: 'fixed',
+          top: TOP_BAR_HEIGHT + 12,
+          right: 16,
+          zIndex: 15,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          alignItems: 'flex-end',
+          touchAction: 'none',
+        }}>
+          <button
+            onClick={() => setShowTerritories(v => !v)}
+            title="Toggle territory colors"
+            style={{
+              padding: '6px 12px',
+              borderRadius: 8,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              background: showTerritories ? 'rgba(0,212,126,0.15)' : 'rgba(10,10,15,0.85)',
+              border: showTerritories ? '1.5px solid rgba(0,212,126,0.5)' : '1px solid rgba(255,255,255,0.12)',
+              color: showTerritories ? '#00D47E' : 'rgba(240,240,245,0.7)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            }}
+          >
+            {showTerritories ? '🗺 Territories ON' : '🗺 Territories'}
+          </button>
+
+          {/* Territory legend — shown when toggle is on */}
+          {showTerritories && (
+            <div style={{
+              background: 'rgba(10,10,15,0.88)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 10,
+              padding: '10px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+              boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
+            }}>
+              {[
+                { name: 'Johnny', zone: 'Central Tulsa' },
+                { name: 'Jordan', zone: 'East / SE' },
+                { name: 'Skip',   zone: 'North / West' },
+              ].map(({ name, zone }) => (
+                <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    background: SALESMAN_COLORS[name],
+                    border: '2px solid rgba(255,255,255,0.25)',
+                    flexShrink: 0,
+                  }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: SALESMAN_COLORS[name] }}>{name}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(240,240,245,0.45)' }}>{zone}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Mobile Bottom Tab Bar ────────────────────────────────────────────── */}
