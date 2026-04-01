@@ -40,9 +40,22 @@ function scoreColor(s) {
   return '#ef4444';
 }
 
+// ─── CRM Stage Config ─────────────────────────────────────────────────────────
+const STAGES = [
+  { key: 'new',       label: 'New',       color: '#3b82f6' },
+  { key: 'contacted', label: 'Contacted', color: '#f59e0b' },
+  { key: 'quoted',    label: 'Quoted',    color: '#f97316' },
+  { key: 'closed',    label: 'Closed',    color: '#10b981' },
+  { key: 'dead',      label: 'Dead',      color: '#6b7280' },
+];
+
+function stageColor(s) {
+  const found = STAGES.find(st => st.key === s);
+  return found ? found.color : '#3b82f6';
+}
+
 function statusColor(s) {
-  const map = { new: '#00D47E', contacted: '#f59e0b', quoted: '#8b5cf6', closed: '#10b981', dismissed: 'rgba(255,255,255,0.2)' };
-  return map[s] || 'rgba(255,255,255,0.2)';
+  return stageColor(s);
 }
 
 function formatPrice(p) {
@@ -130,7 +143,7 @@ function Toast({ message, onDone }) {
 }
 
 // ─── Lead Card ────────────────────────────────────────────────────────────────
-function LeadCard({ lead, onClick, isNew: flashNew }) {
+function LeadCard({ lead, onClick, isNew: flashNew, onStageChange }) {
   const isFB = lead.source === 'FB';
   const accentColor = isFB ? '#f97316' : '#8b5cf6';
   const ts = getLeadTs(lead);
@@ -223,6 +236,12 @@ function LeadCard({ lead, onClick, isNew: flashNew }) {
           <StatusPill status={lead.status} />
           <span style={{ fontSize: 11, color: 'rgba(240,240,245,0.3)', marginLeft: 'auto' }}>{timeAgo(lead.processedAt)}</span>
         </div>
+
+        {/* Stage picker */}
+        <StagePicker
+          current={lead.status || 'new'}
+          onChange={(stage) => onStageChange && onStageChange(lead, stage)}
+        />
       </div>
 
       {/* Score ring */}
@@ -235,7 +254,7 @@ function LeadCard({ lead, onClick, isNew: flashNew }) {
 
 // ─── Status Pill ──────────────────────────────────────────────────────────────
 function StatusPill({ status }) {
-  const color = statusColor(status);
+  const color = statusColor(status || 'new');
   return (
     <span style={{
       fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
@@ -246,6 +265,44 @@ function StatusPill({ status }) {
     }}>
       {status || 'new'}
     </span>
+  );
+}
+
+// ─── Stage Picker Strip ───────────────────────────────────────────────────────
+function StagePicker({ current, onChange }) {
+  return (
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', marginTop: 8 }}
+    >
+      {STAGES.map(st => {
+        const active = (current || 'new') === st.key;
+        return (
+          <button
+            key={st.key}
+            onClick={() => !active && onChange(st.key)}
+            style={{
+              flex: 1,
+              padding: '3px 0',
+              borderRadius: 6,
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              cursor: active ? 'default' : 'pointer',
+              fontFamily: 'Inter, sans-serif',
+              border: `1px solid ${active ? st.color : st.color + '40'}`,
+              background: active ? `${st.color}30` : 'transparent',
+              color: active ? st.color : `${st.color}70`,
+              transition: 'all 120ms ease',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {st.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -555,29 +612,21 @@ function LeadDetail({ lead, onClose, onStatusChange }) {
           />
         </Section>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-          <ActionBtn
-            label="Mark Contacted"
-            color="#00D47E"
-            onClick={() => onStatusChange(lead, 'contacted')}
-            disabled={lead?.status === 'contacted'}
-          />
-          <ActionBtn
-            label="Mark Quoted"
-            color="#8b5cf6"
-            onClick={() => onStatusChange(lead, 'quoted')}
-            disabled={lead?.status === 'quoted'}
-            outline
-          />
-          <ActionBtn
-            label="Dismiss"
-            color="#ef4444"
-            onClick={() => onStatusChange(lead, 'dismissed')}
-            disabled={lead?.status === 'dismissed'}
-            outline
-          />
-        </div>
+        {/* Stage Actions */}
+        <Section title="Pipeline Stage">
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {STAGES.map(st => (
+              <ActionBtn
+                key={st.key}
+                label={st.label}
+                color={st.color}
+                onClick={() => onStatusChange(lead, st.key)}
+                disabled={(lead?.status || 'new') === st.key}
+                outline
+              />
+            ))}
+          </div>
+        </Section>
       </div>
     </motion.div>
   );
@@ -704,9 +753,10 @@ export default function LeadHub({ onClose }) {
     if (filter === 'facebook') return l.source === 'FB';
     if (filter === 'realestate') return l.source === 'Redfin';
     if (filter === 'hot') return l.score >= 8;
-    if (filter === 'new') return l.status === 'new';
-    if (filter === 'contacted') return l.status === 'contacted';
-    if (filter === 'quoted') return l.status === 'quoted';
+    if (filter.startsWith('stage_')) {
+      const stage = filter.replace('stage_', '');
+      return (l.status || 'new') === stage;
+    }
     return true;
   }).sort((a, b) => {
     const pa = isPriorityLead(a) ? 1 : 0;
@@ -758,9 +808,12 @@ export default function LeadHub({ onClose }) {
     { key: 'facebook', label: 'Facebook' },
     { key: 'realestate', label: 'Real Estate' },
     { key: 'hot', label: '🔥 Hot' },
-    { key: 'new', label: 'New' },
-    { key: 'contacted', label: 'Contacted' },
-    { key: 'quoted', label: 'Quoted' },
+    // CRM stages
+    { key: 'stage_new',       label: 'New',       color: '#3b82f6' },
+    { key: 'stage_contacted', label: 'Contacted', color: '#f59e0b' },
+    { key: 'stage_quoted',    label: 'Quoted',    color: '#f97316' },
+    { key: 'stage_closed',    label: 'Closed',    color: '#10b981' },
+    { key: 'stage_dead',      label: 'Dead',      color: '#6b7280' },
   ];
 
   return (
@@ -827,21 +880,25 @@ export default function LeadHub({ onClose }) {
       {/* ── Filter Pills ───────────────────────────────────────────────────── */}
       <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              style={{
-                padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms ease',
-                background: filter === f.key ? 'rgba(0,212,126,0.12)' : 'rgba(255,255,255,0.04)',
-                border: filter === f.key ? '1px solid rgba(0,212,126,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                color: filter === f.key ? '#00D47E' : 'rgba(240,240,245,0.5)',
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
+          {FILTERS.map(f => {
+            const active = filter === f.key;
+            const accent = f.color || '#00D47E';
+            return (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                style={{
+                  padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms ease',
+                  background: active ? `${accent}18` : 'rgba(255,255,255,0.04)',
+                  border: active ? `1px solid ${accent}60` : '1px solid rgba(255,255,255,0.08)',
+                  color: active ? accent : 'rgba(240,240,245,0.5)',
+                }}
+              >
+                {f.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -873,6 +930,7 @@ export default function LeadHub({ onClose }) {
                 lead={lead}
                 onClick={setSelected}
                 isNew={newIds.has(lead._docId)}
+                onStageChange={handleStatusChange}
               />
             </motion.div>
           ))
